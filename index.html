@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <title>شبكتي - الرئيسية</title>
+</head>
+<body>
+  <div id="app" class="container">
+    <header>
+      <h1>شبكتي</h1>
+      <nav>
+        <a href="profile.html">ملفي</a>
+        <a href="#" onclick="logout()">خروج</a>
+      </nav>
+    </header>
+    <main>
+      <section id="new-post">
+        <textarea id="postContent" placeholder="ما الذي يدور في ذهنك؟"></textarea>
+        <input type="file" id="postImage" accept="image/*">
+        <button onclick="createPost()">نشر</button>
+      </section>
+      <section id="feed"></section>
+    </main>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script>if (!getToken()) location.href = 'login.html'; else loadFeed();</script>
+</body>
+</html>

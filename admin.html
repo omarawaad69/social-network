@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>لوحة الأدمن</title>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="index.html">الرئيسية</a>
+      <h1>لوحة الأدمن</h1>
+    </header>
+    <section>
+      <h2>المستخدمون</h2>
+      <div id="usersList"></div>
+      <h2>المنشورات</h2>
+      <div id="postsList"></div>
+    </section>
+  </div>
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    if (!getToken()) location.href = 'login.html';
+    else checkAdmin();
+  </script>
+</body>
+</html>

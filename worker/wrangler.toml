@@ -1,0 +1,13 @@
+name = "social-network"
+main = "worker/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "social_db"
+database_id = "ضع_هنا_معرف_قاعدة_بيانات_D1"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "social-images"

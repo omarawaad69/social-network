@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>الملف الشخصي</title>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="index.html">الرئيسية</a>
+      <h1>الملف الشخصي</h1>
+    </header>
+    <div id="profileInfo"></div>
+    <h2>منشوراتي</h2>
+    <div id="userPosts"></div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    async function loadProfile() {
+      const user = await apiGet('/api/me');
+      document.getElementById('profileInfo').innerHTML = `<p>@${user.username} (${user.email})</p>`;
+      // يمكن جلب منشورات المستخدم عبر API آخر، لكن نستخدم جلب الكل ونفلتر مؤقتاً
+      const posts = await apiGet('/api/posts');
+      const myPosts = posts.filter(p => p.user_id === user.id);
+      document.getElementById('userPosts').innerHTML = myPosts.map(p => `<div class="post"><b>${p.username}</b><p>${p.content}</p></div>`).join('');
+    }
+    if (!getToken()) location.href = 'login.html';
+    else loadProfile();
+  </script>
+</body>
+</html>
