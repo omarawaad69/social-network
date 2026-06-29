@@ -86,6 +86,7 @@
       }
     }
 
+    // --- دالة النشر المعدّلة (تظهر الخطأ الحقيقي) ---
     async function createPost() {
       const content = document.getElementById('postContent').value.trim();
       const imageFile = document.getElementById('postImage').files[0];
@@ -109,10 +110,10 @@
           document.getElementById('imagePreview').style.display = 'none';
           loadFeed();
         } else {
-          alert('فشل النشر: ' + (result.error || 'خطأ غير معروف'));
+          alert('فشل النشر: ' + (result.error || 'استجابة غير متوقعة'));
         }
       } catch (e) {
-        alert('تعذر الاتصال بالخادم');
+        alert('خطأ تقني: ' + e.message); // يظهر سبب الخطأ الحقيقي
       } finally {
         btn.disabled = false;
         btn.innerHTML = btn.getAttribute('data-text');
@@ -121,7 +122,7 @@
 
     async function likePost(postId, btn) {
       await apiPost('/api/like', { postId });
-      loadFeed(); // تحديث العداد
+      loadFeed();
     }
 
     async function toggleComments(postId) {
