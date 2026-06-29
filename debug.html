@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تشخيص الأدمن - ماي سمسم</title>
+  <style>
+    body { background: #0b0b1a; color: #fff; font-family: sans-serif; padding: 20px; }
+    .card { background: rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin: 20px 0; }
+    pre { background: #1a1a2e; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    .success { color: #6bff90; }
+    .error { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <h1>🐿️ تشخيص الأدمن</h1>
+  <div class="card">
+    <p>حالة تسجيل الدخول: <span id="loginStatus">يتم الفحص...</span></p>
+    <p>الرابط المستخدم: <span id="apiBase"></span></p>
+  </div>
+  <div class="card">
+    <h3>نتيجة /api/me :</h3>
+    <pre id="apiResult">جاري الاتصال...</pre>
+  </div>
+  <div id="finalMessage"></div>
+
+  <script>
+    // ⚠️ غيّر XXXXX إلى الجزء بتاعك من رابط الـ Worker
+    const API_BASE = 'https://social-api.omarawaad69.workers.dev';
+    document.getElementById('apiBase').innerText = API_BASE;
+
+    async function runDiagnostic() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        document.getElementById('loginStatus').innerHTML = '<span class="error">❌ غير مسجل الدخول. سجل الدخول أولاً ثم افتح هذه الصفحة.</span>';
+        return;
+      }
+      document.getElementById('loginStatus').innerHTML = '<span class="success">✅ مسجل الدخول (تم العثور على رمز)</span>';
+
+      try {
+        const res = await fetch(API_BASE + '/api/me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        document.getElementById('apiResult').innerText = JSON.stringify(data, null, 2);
+        
+        if (res.ok && data.is_admin === 1) {
+          document.getElementById('finalMessage').innerHTML = '<div class="success" style="margin-top:20px; font-size:1.2rem;">✅ أنت أدمن! المشكلة في واجهة الموقع (الكاش مثلاً). امسح بيانات المتصفح أو انتظر دقائق.</div>';
+        } else if (res.ok && data.is_admin !== 1) {
+          document.getElementById('finalMessage').innerHTML = '<div class="error">⚠️ أنت لست أدمن. تأكد من تنفيذ أمر UPDATE في D1 بنفس البريد الإلكتروني.</div>';
+        } else {
+          document.getElementById('finalMessage').innerHTML = '<div class="error">⚠️ فشل الطلب (حالة: ' + res.status + '). راجع إعدادات الـ Worker والربط بـ D1.</div>';
+        }
+      } catch (e) {
+        document.getElementById('apiResult').innerText = 'خطأ: ' + e.message;
+        document.getElementById('finalMessage').innerHTML = '<div class="error">❌ لا يمكن الاتصال بالخادم. تأكد من رابط الـ Worker ومن أن الخادم شغال.</div>';
+      }
+    }
+
+    runDiagnostic();
+  </script>
+</body>
+</html>
