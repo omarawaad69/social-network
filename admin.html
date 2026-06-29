@@ -4,26 +4,76 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
-  <title>لوحة الأدمن</title>
+  <title>ماي سمسم - لوحة الأدمن</title>
 </head>
 <body>
   <div class="container">
-    <header>
-      <a href="index.html">الرئيسية</a>
-      <h1>لوحة الأدمن</h1>
-    </header>
-    <section>
+    <div class="topbar">
+      <h1>🐿️ سمسم</h1>
+      <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="search.html">بحث</a>
+        <a href="profile.html">ملفي</a>
+        <a href="admin.html" class="active" style="color:#ff6b6b;">⚙️ الأدمن</a>
+        <a href="#" onclick="logout()">خروج</a>
+      </nav>
+    </div>
+    <div class="card">
       <h2>المستخدمون</h2>
       <div id="usersList"></div>
+    </div>
+    <div class="card">
       <h2>المنشورات</h2>
       <div id="postsList"></div>
-    </section>
+    </div>
   </div>
   <script src="js/api.js"></script>
-  <script src="js/admin.js"></script>
   <script>
     if (!getToken()) location.href = 'login.html';
-    else checkAdmin();
+    async function init() {
+      try {
+        const me = await apiGet('/api/me');
+        if (!me.is_admin) {
+          alert('غير مصرح');
+          return location.href = 'index.html';
+        }
+        document.getElementById('adminLink').style.display = 'inline';
+        loadUsers();
+        loadPosts();
+      } catch (e) {
+        alert('فشل التحقق من الصلاحية');
+        location.href = 'index.html';
+      }
+    }
+    async function loadUsers() {
+      const users = await apiGet('/api/admin/users');
+      document.getElementById('usersList').innerHTML = users.map(u => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+          <span>@${u.username} (${u.email}) ${u.is_admin ? '⭐' : ''}</span>
+          ${!u.is_admin ? `<button class="btn btn-small" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
+        </div>
+      `).join('');
+    }
+    async function loadPosts() {
+      const posts = await apiGet('/api/admin/posts');
+      document.getElementById('postsList').innerHTML = posts.map(p => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+          <span>${p.content?.substring(0,40) || 'منشور بدون نص'}...</span>
+          <button class="btn btn-small" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
+        </div>
+      `).join('');
+    }
+    async function deleteUser(userId) {
+      if (!confirm('متأكد من حذف المستخدم؟')) return;
+      await apiPost('/api/admin/delete-user', { userId });
+      loadUsers();
+    }
+    async function deletePost(postId) {
+      if (!confirm('حذف المنشور؟')) return;
+      await apiPost('/api/admin/delete-post', { postId });
+      loadPosts();
+    }
+    init();
   </script>
 </body>
 </html>
