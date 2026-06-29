@@ -28,21 +28,35 @@
   <script src="js/api.js"></script>
   <script>
     if (!getToken()) location.href = 'login.html';
-    (async function() {
-      if (!getToken()) return;
-      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display = 'inline'; } catch(e) {}
-      const user = await apiGet('/api/me');
-      document.getElementById('profileName').innerText = '@' + user.username;
-      document.getElementById('profileEmail').innerText = user.email;
-      const posts = await apiGet('/api/posts');
-      const myPosts = posts.filter(p => p.user_id === user.id);
-      document.getElementById('myPosts').innerHTML = myPosts.length ? myPosts.map(p => `
-        <div class="card">
-          <p>${p.content || ''}</p>
-          ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
-          <small style="color:#aaa;">${new Date(p.created_at).toLocaleString('ar-EG')}</small>
-        </div>
-      `).join('') : '<p style="color:#aaa;">لا منشورات بعد.</p>';
+
+    (async function init() {
+      // التحقق من الأدمن
+      try {
+        const user = await apiGet('/api/me');
+        if (user && user.is_admin) {
+          const link = document.getElementById('adminLink');
+          if (link) {
+            link.style.display = 'inline';
+            link.href = 'admin.html';
+            link.title = 'لوحة الأدمن';
+          }
+        }
+        // تحميل الملف الشخصي
+        document.getElementById('profileName').innerText = '@' + user.username;
+        document.getElementById('profileEmail').innerText = user.email;
+
+        const posts = await apiGet('/api/posts');
+        const myPosts = posts.filter(p => p.user_id === user.id);
+        document.getElementById('myPosts').innerHTML = myPosts.length ? myPosts.map(p => `
+          <div class="card">
+            <p>${p.content || ''}</p>
+            ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
+            <small style="color:#aaa;">${new Date(p.created_at).toLocaleString('ar-EG')}</small>
+          </div>
+        `).join('') : '<p style="color:#aaa;">لا منشورات بعد.</p>';
+      } catch (e) {
+        console.log('خطأ في تحميل الملف الشخصي');
+      }
     })();
   </script>
 </body>
