@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>ماي سمسم - بحث</title>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>🐿️ سمسم</h1>
+      <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="search.html" class="active">بحث</a>
+        <a href="profile.html">ملفي</a>
+        <a href="#" id="adminLink" style="display:none;">⚙️</a>
+        <a href="#" onclick="logout()">خروج</a>
+      </nav>
+    </div>
+    <div class="card">
+      <input type="text" id="searchInput" placeholder="ابحث عن اسم المستخدم...">
+      <button class="btn" onclick="searchUsers()">بحث</button>
+    </div>
+    <div id="results"></div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    if (!getToken()) location.href = 'login.html';
+    (async function adminCheck() {
+      if (!getToken()) return;
+      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display = 'inline'; } catch(e) {}
+    })();
+    async function searchUsers() {
+      const q = document.getElementById('searchInput').value.trim();
+      if (!q) return;
+      const results = document.getElementById('results');
+      results.innerHTML = '<span class="spinner"></span>';
+      const users = await apiGet(`/api/users/search?q=${encodeURIComponent(q)}`);
+      if (!users.length) {
+        results.innerHTML = '<p>لا يوجد مستخدمون بهذا الاسم.</p>';
+        return;
+      }
+      results.innerHTML = users.map(u => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <b>@${u.username}</b><br><small style="color:#aaa;">${u.email}</small>
+          </div>
+          <button class="btn btn-small" onclick="followUser('${u.id}', this)">متابعة</button>
+        </div>
+      `).join('');
+    }
+    async function followUser(targetId, btn) {
+      const res = await apiPost('/api/follow', { targetUserId: targetId });
+      btn.innerText = res.following ? 'تم ✓' : 'متابعة';
+    }
+  </script>
+</body>
+</html>
