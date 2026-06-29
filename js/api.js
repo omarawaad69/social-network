@@ -1,17 +1,15 @@
 // js/api.js
-const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // ← غير XXXXX إلى الصحيح
+const API_BASE = 'https://social-api.XXXXX.workers.dev'; // ⚠️ استبدل XXXXX بالخاص بك
 
 function getToken() {
   return localStorage.getItem('token');
 }
-
 function setToken(token) {
   localStorage.setItem('token', token);
 }
-
 function logout() {
   localStorage.removeItem('token');
-  location.href = 'login.html';
+  window.location.href = 'login.html';
 }
 
 async function apiPost(path, body) {
