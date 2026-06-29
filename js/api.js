@@ -1,19 +1,21 @@
 // js/api.js
-const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // نفس النطاق لأن Worker مربوط بنفس Pages عبر وظيفة Functions أو route
+const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // ← غير XXXXX إلى الصحيح
 
 function getToken() {
   return localStorage.getItem('token');
 }
+
 function setToken(token) {
   localStorage.setItem('token', token);
 }
+
 function logout() {
   localStorage.removeItem('token');
   location.href = 'login.html';
 }
 
 async function apiPost(path, body) {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -25,15 +27,14 @@ async function apiPost(path, body) {
 }
 
 async function apiGet(path) {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     headers: { 'Authorization': `Bearer ${getToken()}` }
   });
   return res.json();
 }
 
-// رفع صورة مع بيانات
 async function apiPostFormData(path, formData) {
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${getToken()}` },
     body: formData
