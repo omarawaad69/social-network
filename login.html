@@ -9,20 +9,25 @@
 <body>
   <div class="login-container">
     <div class="login-card">
-      <h1>🐿️ ماي سمسم</h1>
+      <div class="logo-area">
+        <img src="logo.png" class="logo-img" alt="شعار">
+        <span class="app-name-ar">ماي سمسم</span>
+        <span class="app-name-en">MY SIMSIM</span>
+      </div>
       <p class="subtitle">شبكتك الاجتماعية الآمنة والخاصة</p>
+
       <div id="loginForm">
         <h2>تسجيل الدخول</h2>
-        <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" autocomplete="email">
-        <input type="password" id="loginPassword" placeholder="كلمة المرور">
+        <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" required>
+        <input type="password" id="loginPassword" placeholder="كلمة المرور" required>
         <button class="btn" id="loginBtn" onclick="login()">دخول</button>
         <p style="margin-top:16px; color:#aaa;">ليس لديك حساب؟ <a href="#" onclick="showRegister()" style="color:var(--primary);">أنشئ حساباً</a></p>
       </div>
       <div id="registerForm" style="display:none;">
         <h2>إنشاء حساب جديد</h2>
-        <input type="text" id="regUsername" placeholder="اسم المستخدم">
-        <input type="email" id="regEmail" placeholder="البريد الإلكتروني">
-        <input type="password" id="regPassword" placeholder="كلمة المرور">
+        <input type="text" id="regUsername" placeholder="اسم المستخدم" required>
+        <input type="email" id="regEmail" placeholder="البريد الإلكتروني" required>
+        <input type="password" id="regPassword" placeholder="كلمة المرور" required>
         <button class="btn" id="regBtn" onclick="register()">إنشاء حساب</button>
         <p style="margin-top:16px; color:#aaa;">لديك حساب؟ <a href="#" onclick="showLogin()" style="color:var(--primary);">سجل الدخول</a></p>
       </div>
