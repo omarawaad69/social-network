@@ -1,10 +1,10 @@
 {
-  "name": "شبكتي الاجتماعية",
-  "short_name": "شبكتي",
+  "name": "ماي سمسم",
+  "short_name": "سمسم",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1a73e8",
+  "background_color": "#0b0b1a",
+  "theme_color": "#e94560",
   "icons": [
     {
       "src": "icon-192.png",
