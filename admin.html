@@ -18,35 +18,65 @@
         <a href="#" onclick="logout()">خروج</a>
       </nav>
     </div>
-    <div class="card">
-      <h2>المستخدمون</h2>
-      <div id="usersList"></div>
-    </div>
-    <div class="card">
-      <h2>المنشورات</h2>
-      <div id="postsList"></div>
+    <div id="statusMsg" style="text-align:center; padding:20px;">جاري التحقق من الصلاحية...</div>
+    <div id="adminContent" style="display:none;">
+      <div class="card">
+        <h2>المستخدمون</h2>
+        <div id="usersList"></div>
+      </div>
+      <div class="card">
+        <h2>المنشورات</h2>
+        <div id="postsList"></div>
+      </div>
     </div>
   </div>
-  <script src="js/api.js"></script>
+
   <script>
-    if (!getToken()) location.href = 'login.html';
+    // ⚠️ غيّر XXXXX إلى الجزء الخاص بك
+    const API_BASE = 'https://social-api.omarawaad69.workers.dev';
+
+    function getToken() { return localStorage.getItem('token'); }
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    }
+
     async function init() {
+      const statusMsg = document.getElementById('statusMsg');
+      const token = getToken();
+      if (!token) {
+        statusMsg.innerHTML = '❌ غير مسجل الدخول. <a href="login.html">سجل الدخول</a>';
+        return;
+      }
+
       try {
-        const me = await apiGet('/api/me');
-        if (!me.is_admin) {
-          alert('غير مصرح');
-          return location.href = 'index.html';
+        const res = await fetch(API_BASE + '/api/me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const user = await res.json();
+
+        if (!res.ok || !user.is_admin) {
+          statusMsg.innerHTML = '⛔ غير مصرح لك. هذه الصفحة للأدمن فقط.';
+          return;
         }
-        document.getElementById('adminLink').style.display = 'inline';
+
+        // نجاح التحقق
+        statusMsg.style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
         loadUsers();
         loadPosts();
+
       } catch (e) {
-        alert('فشل التحقق من الصلاحية');
-        location.href = 'index.html';
+        statusMsg.innerHTML = '❌ فشل الاتصال بالخادم. تأكد من اتصالك أو أعد تحميل الصفحة.';
       }
     }
+
     async function loadUsers() {
-      const users = await apiGet('/api/admin/users');
+      const token = getToken();
+      const res = await fetch(API_BASE + '/api/admin/users', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const users = await res.json();
       document.getElementById('usersList').innerHTML = users.map(u => `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
           <span>@${u.username} (${u.email}) ${u.is_admin ? '⭐' : ''}</span>
@@ -54,8 +84,13 @@
         </div>
       `).join('');
     }
+
     async function loadPosts() {
-      const posts = await apiGet('/api/admin/posts');
+      const token = getToken();
+      const res = await fetch(API_BASE + '/api/admin/posts', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const posts = await res.json();
       document.getElementById('postsList').innerHTML = posts.map(p => `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
           <span>${p.content?.substring(0,40) || 'منشور بدون نص'}...</span>
@@ -63,16 +98,35 @@
         </div>
       `).join('');
     }
+
     async function deleteUser(userId) {
       if (!confirm('متأكد من حذف المستخدم؟')) return;
-      await apiPost('/api/admin/delete-user', { userId });
+      const token = getToken();
+      await fetch(API_BASE + '/api/admin/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ userId })
+      });
       loadUsers();
     }
+
     async function deletePost(postId) {
       if (!confirm('حذف المنشور؟')) return;
-      await apiPost('/api/admin/delete-post', { postId });
+      const token = getToken();
+      await fetch(API_BASE + '/api/admin/delete-post', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ postId })
+      });
       loadPosts();
     }
+
     init();
   </script>
 </body>
