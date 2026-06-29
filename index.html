@@ -30,10 +30,25 @@
   <script>
     if (!getToken()) location.href = 'login.html';
     document.getElementById('publishBtn').setAttribute('data-text', 'نشر');
-    (async function showAdminIf() {
+
+    // التحقق من الأدمن وإظهار الأيقونة
+    (async function checkAdmin() {
       if (!getToken()) return;
-      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display = 'inline'; } catch(e) {}
+      try {
+        const user = await apiGet('/api/me');
+        if (user && user.is_admin) {
+          const link = document.getElementById('adminLink');
+          if (link) {
+            link.style.display = 'inline';
+            link.href = 'admin.html';
+            link.title = 'لوحة الأدمن';
+          }
+        }
+      } catch (e) {
+        console.log('تعذر التحقق من الأدمن');
+      }
     })();
+
     async function loadFeed() {
       const feed = document.getElementById('feed');
       feed.innerHTML = '<div style="text-align:center; padding:20px;"><span class="spinner"></span></div>';
