@@ -1,5 +1,5 @@
 // js/api.js
-const API_BASE = 'https://social-api.XXXXX.workers.dev'; // ⚠️ استبدل XXXXX بالخاص بك
+const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // ⚠️ استبدل XXXXX بالخاص بك
 
 function getToken() {
   return localStorage.getItem('token');
