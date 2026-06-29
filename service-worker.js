@@ -1,12 +1,14 @@
 // service-worker.js
-const CACHE_NAME = 'social-v1';
+const CACHE_NAME = 'mysemsem-v2';
 const ASSETS = [
   '/',
   '/index.html',
   '/login.html',
+  '/search.html',
+  '/profile.html',
+  '/admin.html',
   '/css/style.css',
   '/js/api.js',
-  '/js/app.js',
   '/manifest.json'
 ];
 
