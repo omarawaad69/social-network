@@ -4,130 +4,147 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
-  <title>ماي سمسم - لوحة الأدمن</title>
+  <link rel="manifest" href="manifest.json">
+  <title>ماي سمسم - الرئيسية</title>
 </head>
 <body>
   <div class="container">
     <div class="topbar">
-      <h1>🐿️ سمسم</h1>
+      <div class="logo-area">
+        <!-- إذا وفرت صورة الشعار، أضف <img src="logo.png" class="logo-img" alt="شعار"> -->
+        <span class="app-name-ar">ماي سمسم</span>
+        <span class="app-name-en">MY SIMSIM</span>
+      </div>
       <nav>
-        <a href="index.html">الرئيسية</a>
+        <a href="index.html" class="active">الرئيسية</a>
         <a href="search.html">بحث</a>
         <a href="profile.html">ملفي</a>
-        <a href="admin.html" class="active" style="color:#ff6b6b;">⚙️ الأدمن</a>
+        <a href="#" id="adminLink" style="display:none;">⚙️</a>
         <a href="#" onclick="logout()">خروج</a>
       </nav>
     </div>
-    <div id="statusMsg" style="text-align:center; padding:20px;">جاري التحقق من الصلاحية...</div>
-    <div id="adminContent" style="display:none;">
-      <div class="card">
-        <h2>المستخدمون</h2>
-        <div id="usersList"></div>
+
+    <div class="card">
+      <textarea id="postContent" placeholder="ما الذي يدور في ذهنك؟" rows="2"></textarea>
+      <div class="upload-btn-wrapper">
+        <div class="upload-icon">📷 إضافة صورة</div>
+        <input type="file" id="postImage" accept="image/*" onchange="previewImage()">
       </div>
-      <div class="card">
-        <h2>المنشورات</h2>
-        <div id="postsList"></div>
-      </div>
+      <img id="imagePreview" class="image-preview" />
+      <button class="btn" id="publishBtn" onclick="createPost()">نشر</button>
     </div>
+    <div id="feed"></div>
   </div>
 
+  <script src="js/api.js"></script>
   <script>
-    // ⚠️ غيّر XXXXX إلى الجزء الخاص بك
-    const API_BASE = 'https://social-api.omarawaad69.workers.dev';
+    if (!getToken()) location.href = 'login.html';
+    document.getElementById('publishBtn').setAttribute('data-text', 'نشر');
 
-    function getToken() { return localStorage.getItem('token'); }
-    function logout() {
-      localStorage.removeItem('token');
-      window.location.href = 'login.html';
+    // دالة معاينة الصورة
+    function previewImage() {
+      const file = document.getElementById('postImage').files[0];
+      const preview = document.getElementById('imagePreview');
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
     }
 
-    async function init() {
-      const statusMsg = document.getElementById('statusMsg');
-      const token = getToken();
-      if (!token) {
-        statusMsg.innerHTML = '❌ غير مسجل الدخول. <a href="login.html">سجل الدخول</a>';
-        return;
-      }
-
+    // تحميل المنشورات مع التفاعلات
+    async function loadFeed() {
+      const feed = document.getElementById('feed');
+      feed.innerHTML = '<div style="text-align:center;"><span class="spinner"></span></div>';
       try {
-        const res = await fetch(API_BASE + '/api/me', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        const user = await res.json();
-
-        if (!res.ok || !user.is_admin) {
-          statusMsg.innerHTML = '⛔ غير مصرح لك. هذه الصفحة للأدمن فقط.';
+        const posts = await apiGet('/api/posts');
+        if (!posts.length) {
+          feed.innerHTML = '<p style="color:#aaa; text-align:center;">لا توجد منشورات. تابع أصدقاء!</p>';
           return;
         }
-
-        // نجاح التحقق
-        statusMsg.style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        loadUsers();
-        loadPosts();
-
+        feed.innerHTML = posts.map(p => {
+          const likedClass = p.liked_by_me ? 'liked' : '';
+          return `
+            <div class="card post">
+              <div class="post-header">
+                <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
+                <span class="post-username">@${p.username}</span>
+              </div>
+              <div class="post-content">${p.content || ''}</div>
+              ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
+              <div class="post-actions">
+                <button class="${likedClass}" onclick="likePost('${p.id}', this)">
+                  ${p.liked_by_me ? '❤️' : '🤍'} <span>${p.likes_count || 0}</span>
+                </button>
+                <button onclick="toggleComments('${p.id}')">💬 <span>${p.comments_count || 0}</span></button>
+              </div>
+              <div id="comments-${p.id}" class="comment-section" style="display:none;"></div>
+            </div>
+          `;
+        }).join('');
       } catch (e) {
-        statusMsg.innerHTML = '❌ فشل الاتصال بالخادم. تأكد من اتصالك أو أعد تحميل الصفحة.';
+        feed.innerHTML = '<p style="color:red;">فشل تحميل المنشورات</p>';
       }
     }
 
-    async function loadUsers() {
-      const token = getToken();
-      const res = await fetch(API_BASE + '/api/admin/users', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const users = await res.json();
-      document.getElementById('usersList').innerHTML = users.map(u => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-          <span>@${u.username} (${u.email}) ${u.is_admin ? '⭐' : ''}</span>
-          ${!u.is_admin ? `<button class="btn btn-small" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
-        </div>
-      `).join('');
+    async function createPost() {
+      const content = document.getElementById('postContent').value.trim();
+      const imageFile = document.getElementById('postImage').files[0];
+      if (!content && !imageFile) return alert('أضف نصاً أو صورة');
+      const btn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        let result;
+        if (imageFile) {
+          const fd = new FormData();
+          fd.append('content', content);
+          fd.append('image', imageFile);
+          result = await apiPostFormData('/api/posts', fd);
+        } else {
+          result = await apiPost('/api/posts', { content });
+        }
+        if (result.id) {
+          document.getElementById('postContent').value = '';
+          document.getElementById('postImage').value = '';
+          document.getElementById('imagePreview').style.display = 'none';
+          loadFeed();
+        } else {
+          alert('فشل النشر: ' + (result.error || 'خطأ غير معروف'));
+        }
+      } catch (e) {
+        alert('تعذر الاتصال بالخادم');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = btn.getAttribute('data-text');
+      }
     }
 
-    async function loadPosts() {
-      const token = getToken();
-      const res = await fetch(API_BASE + '/api/admin/posts', {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const posts = await res.json();
-      document.getElementById('postsList').innerHTML = posts.map(p => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
-          <span>${p.content?.substring(0,40) || 'منشور بدون نص'}...</span>
-          <button class="btn btn-small" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
-        </div>
-      `).join('');
+    async function likePost(postId, btn) {
+      const res = await apiPost('/api/like', { postId });
+      if (res.liked !== undefined) {
+        loadFeed(); // إعادة تحميل لتحديث العداد
+      }
     }
 
-    async function deleteUser(userId) {
-      if (!confirm('متأكد من حذف المستخدم؟')) return;
-      const token = getToken();
-      await fetch(API_BASE + '/api/admin/delete-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify({ userId })
-      });
-      loadUsers();
-    }
+    // التعليقات (نفس السابق مع تحسين الشكل)
+    async function toggleComments(postId) { ... }
+    async function addComment(postId) { ... }
 
-    async function deletePost(postId) {
-      if (!confirm('حذف المنشور؟')) return;
-      const token = getToken();
-      await fetch(API_BASE + '/api/admin/delete-post', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify({ postId })
-      });
-      loadPosts();
-    }
+    // أيقونة الأدمن
+    (async function checkAdmin() {
+      if (!getToken()) return;
+      try {
+        const user = await apiGet('/api/me');
+        if (user && user.is_admin) {
+          const link = document.getElementById('adminLink');
+          if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
+        }
+      } catch(e) {}
+    })();
 
-    init();
+    loadFeed();
   </script>
 </body>
 </html>
