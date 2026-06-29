@@ -4,30 +4,46 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
-  <title>الملف الشخصي</title>
+  <title>ماي سمسم - ملفي</title>
 </head>
 <body>
   <div class="container">
-    <header>
-      <a href="index.html">الرئيسية</a>
-      <h1>الملف الشخصي</h1>
-    </header>
-    <div id="profileInfo"></div>
-    <h2>منشوراتي</h2>
-    <div id="userPosts"></div>
+    <div class="topbar">
+      <h1>🐿️ سمسم</h1>
+      <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="search.html">بحث</a>
+        <a href="profile.html" class="active">ملفي</a>
+        <a href="#" id="adminLink" style="display:none;">⚙️</a>
+        <a href="#" onclick="logout()">خروج</a>
+      </nav>
+    </div>
+    <div class="card">
+      <h2 id="profileName"></h2>
+      <p id="profileEmail" style="color:#aaa;"></p>
+    </div>
+    <h3 style="margin:12px 0;">منشوراتي</h3>
+    <div id="myPosts"></div>
   </div>
   <script src="js/api.js"></script>
   <script>
-    async function loadProfile() {
+    if (!getToken()) location.href = 'login.html';
+    (async function() {
+      if (!getToken()) return;
+      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display = 'inline'; } catch(e) {}
       const user = await apiGet('/api/me');
-      document.getElementById('profileInfo').innerHTML = `<p>@${user.username} (${user.email})</p>`;
-      // يمكن جلب منشورات المستخدم عبر API آخر، لكن نستخدم جلب الكل ونفلتر مؤقتاً
+      document.getElementById('profileName').innerText = '@' + user.username;
+      document.getElementById('profileEmail').innerText = user.email;
       const posts = await apiGet('/api/posts');
       const myPosts = posts.filter(p => p.user_id === user.id);
-      document.getElementById('userPosts').innerHTML = myPosts.map(p => `<div class="post"><b>${p.username}</b><p>${p.content}</p></div>`).join('');
-    }
-    if (!getToken()) location.href = 'login.html';
-    else loadProfile();
+      document.getElementById('myPosts').innerHTML = myPosts.length ? myPosts.map(p => `
+        <div class="card">
+          <p>${p.content || ''}</p>
+          ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
+          <small style="color:#aaa;">${new Date(p.created_at).toLocaleString('ar-EG')}</small>
+        </div>
+      `).join('') : '<p style="color:#aaa;">لا منشورات بعد.</p>';
+    })();
   </script>
 </body>
 </html>
