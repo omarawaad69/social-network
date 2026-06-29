@@ -9,7 +9,11 @@
 <body>
   <div class="container">
     <div class="topbar">
-      <h1>🐿️ سمسم</h1>
+      <div class="logo-area">
+        <img src="logo.png" class="logo-img" alt="شعار">
+        <span class="app-name-ar">ماي سمسم</span>
+        <span class="app-name-en">MY SIMSIM</span>
+      </div>
       <nav>
         <a href="index.html">الرئيسية</a>
         <a href="search.html" class="active">بحث</a>
@@ -27,25 +31,16 @@
   <script src="js/api.js"></script>
   <script>
     if (!getToken()) location.href = 'login.html';
-
-    // التحقق من الأدمن
     (async function checkAdmin() {
       if (!getToken()) return;
       try {
         const user = await apiGet('/api/me');
         if (user && user.is_admin) {
           const link = document.getElementById('adminLink');
-          if (link) {
-            link.style.display = 'inline';
-            link.href = 'admin.html';
-            link.title = 'لوحة الأدمن';
-          }
+          if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
         }
-      } catch (e) {
-        console.log('تعذر التحقق من الأدمن');
-      }
+      } catch(e) {}
     })();
-
     async function searchUsers() {
       const q = document.getElementById('searchInput').value.trim();
       if (!q) return;
