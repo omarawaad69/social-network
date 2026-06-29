@@ -5,28 +5,114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <link rel="manifest" href="manifest.json">
-  <title>شبكتي - الرئيسية</title>
+  <title>ماي سمسم - الرئيسية</title>
 </head>
 <body>
-  <div id="app" class="container">
-    <header>
-      <h1>شبكتي</h1>
+  <div class="container">
+    <div class="topbar">
+      <h1>🐿️ سمسم</h1>
       <nav>
+        <a href="index.html" class="active">الرئيسية</a>
+        <a href="search.html">بحث</a>
         <a href="profile.html">ملفي</a>
+        <a href="#" id="adminLink" style="display:none;">⚙️</a>
         <a href="#" onclick="logout()">خروج</a>
       </nav>
-    </header>
-    <main>
-      <section id="new-post">
-        <textarea id="postContent" placeholder="ما الذي يدور في ذهنك؟"></textarea>
-        <input type="file" id="postImage" accept="image/*">
-        <button onclick="createPost()">نشر</button>
-      </section>
-      <section id="feed"></section>
-    </main>
+    </div>
+    <div class="card">
+      <textarea id="postContent" placeholder="ما الذي يدور في ذهنك؟" rows="2"></textarea>
+      <input type="file" id="postImage" accept="image/*">
+      <button class="btn" id="publishBtn" onclick="createPost()">نشر</button>
+    </div>
+    <div id="feed"></div>
   </div>
   <script src="js/api.js"></script>
-  <script src="js/app.js"></script>
-  <script>if (!getToken()) location.href = 'login.html'; else loadFeed();</script>
+  <script>
+    if (!getToken()) location.href = 'login.html';
+    document.getElementById('publishBtn').setAttribute('data-text', 'نشر');
+    (async function showAdminIf() {
+      if (!getToken()) return;
+      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display = 'inline'; } catch(e) {}
+    })();
+    async function loadFeed() {
+      const feed = document.getElementById('feed');
+      feed.innerHTML = '<div style="text-align:center; padding:20px;"><span class="spinner"></span></div>';
+      try {
+        const posts = await apiGet('/api/posts');
+        if (!posts || !posts.length) {
+          feed.innerHTML = '<p style="text-align:center; color:#aaa; margin-top:40px;">لا توجد منشورات بعد. تابع أصدقاء لرؤية منشوراتهم!</p>';
+          return;
+        }
+        feed.innerHTML = posts.map(p => `
+          <div class="card post">
+            <div class="post-header">
+              <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
+              <span class="post-username">@${p.username}</span>
+            </div>
+            <div class="post-content">${p.content || ''}</div>
+            ${p.image_url ? `<img src="${p.image_url}" class="post-image" alt="صورة">` : ''}
+            <div class="post-actions">
+              <button onclick="likePost('${p.id}')">❤️ إعجاب</button>
+              <button onclick="toggleComments('${p.id}')">💬 تعليقات</button>
+            </div>
+            <div id="comments-${p.id}" style="display:none; margin-top:12px;"></div>
+          </div>
+        `).join('');
+      } catch (e) {
+        feed.innerHTML = '<p style="color:red;">تعذر تحميل المنشورات</p>';
+      }
+    }
+    async function createPost() {
+      const content = document.getElementById('postContent').value.trim();
+      const imageFile = document.getElementById('postImage').files[0];
+      if (!content && !imageFile) return alert('أضف نصاً أو صورة');
+      const btn = document.getElementById('publishBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> نشر...';
+      try {
+        let result;
+        if (imageFile) {
+          const fd = new FormData();
+          fd.append('content', content);
+          fd.append('image', imageFile);
+          result = await apiPostFormData('/api/posts', fd);
+        } else {
+          result = await apiPost('/api/posts', { content });
+        }
+        if (result.id) {
+          document.getElementById('postContent').value = '';
+          document.getElementById('postImage').value = '';
+          loadFeed();
+        }
+      } catch (e) {
+        alert('فشل النشر');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = btn.getAttribute('data-text');
+      }
+    }
+    async function likePost(postId) { await apiPost('/api/like', { postId }); }
+    async function toggleComments(postId) {
+      const div = document.getElementById(`comments-${postId}`);
+      if (div.style.display === 'block') { div.style.display = 'none'; return; }
+      div.innerHTML = '<span class="spinner"></span>';
+      div.style.display = 'block';
+      const comments = await apiGet(`/api/comments/${postId}`);
+      div.innerHTML = comments.map(c => `<p><b>${c.username}</b>: ${c.text}</p>`).join('') +
+        `<div style="display:flex; gap:8px; margin-top:8px;">
+          <input id="commInput-${postId}" placeholder="أضف تعليقاً" style="flex:1;">
+          <button class="btn btn-small" onclick="addComment('${postId}')">تعليق</button>
+        </div>`;
+    }
+    async function addComment(postId) {
+      const input = document.getElementById(`commInput-${postId}`);
+      const text = input.value.trim();
+      if (!text) return;
+      await apiPost('/api/comments', { postId, text });
+      input.value = '';
+      toggleComments(postId);
+    }
+    loadFeed();
+  </script>
 </body>
 </html>
