@@ -1,5 +1,5 @@
 // js/api.js
-const API_BASE = ''; // نفس النطاق لأن Worker مربوط بنفس Pages عبر وظيفة Functions أو route
+const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // نفس النطاق لأن Worker مربوط بنفس Pages عبر وظيفة Functions أو route
 
 function getToken() {
   return localStorage.getItem('token');
