@@ -72,15 +72,17 @@ body::before {
   margin-bottom: 4px;
 }
 
+/* --- تعديلات الشعار المكبّر --- */
 .logo-img {
-  width: 45px;
-  height: 45px;
-  margin-bottom: 2px;
-  border-radius: 12px; /* إذا كان الشعار مربعًا بحواف دائرية */
+  width: 70px;               /* كان 45px */
+  height: 70px;
+  margin-bottom: 4px;
+  border-radius: 16px;
+  box-shadow: 0 0 15px rgba(233,69,96,0.6); /* توهج */
 }
 
 .app-name-ar {
-  font-size: 1.8rem;
+  font-size: 2rem;           /* كان 1.8rem */
   font-weight: 700;
   background: linear-gradient(45deg, var(--primary), #ff8a80);
   -webkit-background-clip: text;
