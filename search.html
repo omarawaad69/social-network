@@ -27,10 +27,25 @@
   <script src="js/api.js"></script>
   <script>
     if (!getToken()) location.href = 'login.html';
-    (async function adminCheck() {
+
+    // التحقق من الأدمن
+    (async function checkAdmin() {
       if (!getToken()) return;
-      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display = 'inline'; } catch(e) {}
+      try {
+        const user = await apiGet('/api/me');
+        if (user && user.is_admin) {
+          const link = document.getElementById('adminLink');
+          if (link) {
+            link.style.display = 'inline';
+            link.href = 'admin.html';
+            link.title = 'لوحة الأدمن';
+          }
+        }
+      } catch (e) {
+        console.log('تعذر التحقق من الأدمن');
+      }
     })();
+
     async function searchUsers() {
       const q = document.getElementById('searchInput').value.trim();
       if (!q) return;
