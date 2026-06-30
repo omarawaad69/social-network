@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>ماي سمسم - محادثة</title>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <a href="chats.html">⬅ رجوع</a>
+      <span id="chatTitle" style="font-weight:700;">محادثة</span>
+      <span></span>
+    </div>
+    <div id="messages" style="min-height:60vh; padding:10px 0;"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <input id="msgInput" placeholder="اكتب رسالة..." style="flex:1;">
+      <button class="btn btn-small" onclick="sendMsg()">إرسال</button>
+    </div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const otherId = params.get('user') || params.get('id');
+    if (!otherId) location.href = 'chats.html';
+    if (!getToken()) location.href = 'login.html';
+
+    let chatId = null;
+    let myId = null;
+
+    async function init() {
+      const me = await apiGet('/api/me');
+      myId = me.id;
+      const other = await apiGet('/api/user/' + otherId);
+      document.getElementById('chatTitle').innerText = '@' + other.username;
+
+      // بدء أو استرجاع المحادثة
+      const chatRes = await apiPost('/api/chats', { otherUserId: otherId });
+      chatId = chatRes.chatId;
+      loadMessages();
+      setInterval(loadMessages, 3000); // تحديث تلقائي كل 3 ثواني
+    }
+
+    async function loadMessages() {
+      if (!chatId) return;
+      const msgs = await apiGet(`/api/chats/${chatId}/messages`);
+      const div = document.getElementById('messages');
+      div.innerHTML = msgs.map(m => `
+        <div class="chat-bubble ${m.sender_id === myId ? 'chat-sent' : 'chat-received'}">
+          <div>${m.text}</div>
+          <div class="chat-time">${new Date(m.created_at).toLocaleTimeString('ar-EG')}</div>
+        </div>
+      `).join('');
+      div.scrollTop = div.scrollHeight;
+    }
+
+    async function sendMsg() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+      await apiPost(`/api/chats/${chatId}/messages`, { text });
+      input.value = '';
+      loadMessages();
+    }
+
+    init();
+  </script>
+</body>
+</html>
