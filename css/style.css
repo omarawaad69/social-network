@@ -1,4 +1,4 @@
-/* style.css - ماي سمسم احترافي */
+/* style.css - ماي سمسم احترافي (مع الشات والتعديل) */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Orbitron:wght@500;700&display=swap');
 
 * {
@@ -72,17 +72,16 @@ body::before {
   margin-bottom: 4px;
 }
 
-/* --- تعديلات الشعار المكبّر --- */
 .logo-img {
-  width: 70px;               /* كان 45px */
+  width: 70px;
   height: 70px;
   margin-bottom: 4px;
   border-radius: 16px;
-  box-shadow: 0 0 15px rgba(233,69,96,0.6); /* توهج */
+  box-shadow: 0 0 15px rgba(233,69,96,0.6);
 }
 
 .app-name-ar {
-  font-size: 2rem;           /* كان 1.8rem */
+  font-size: 2rem;
   font-weight: 700;
   background: linear-gradient(45deg, var(--primary), #ff8a80);
   -webkit-background-clip: text;
@@ -105,6 +104,8 @@ body::before {
   display: flex;
   gap: 6px;
   margin-top: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .topbar nav a {
@@ -146,6 +147,12 @@ body::before {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
+  justify-content: space-between;
+}
+
+.post-user {
+  display: flex;
+  align-items: center;
 }
 
 .post-avatar {
@@ -166,6 +173,33 @@ body::before {
 .post-username {
   font-weight: 700;
   font-size: 1rem;
+}
+
+.post-menu {
+  position: relative;
+  cursor: pointer;
+}
+
+.post-menu-content {
+  display: none;
+  position: absolute;
+  left: 0;
+  background: #1e1e2f;
+  border-radius: 12px;
+  padding: 8px;
+  z-index: 10;
+  min-width: 120px;
+}
+
+.post-menu-content button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 6px;
+  cursor: pointer;
+  text-align: right;
 }
 
 .post-content {
@@ -344,55 +378,35 @@ input:focus, textarea:focus {
   font-size: 0.95rem;
 }
 
+/* الشات */
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  margin: 6px 0;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.chat-sent {
+  background: var(--primary);
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.chat-received {
+  background: rgba(255,255,255,0.1);
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.chat-time {
+  font-size: 0.7rem;
+  color: #aaa;
+  margin-top: 4px;
+}
+
 /* إشعارات */
 .toast {
   position: fixed;
   bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1e1e2f;
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: 30px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-  z-index: 9999;
-  animation: slideUp 0.4s ease;
-  font-weight: 600;
-}
-
-@keyframes slideUp {
-  from { bottom: -60px; opacity: 0; }
-  to { bottom: 20px; opacity: 1; }
-}
-
-.spinner {
-  border: 3px solid rgba(255,255,255,0.2);
-  border-top: 3px solid var(--primary);
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  animation: spin 0.8s linear infinite;
-  display: inline-block;
-  margin-left: 8px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.comment-section {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-
-.comment-item {
-  padding: 6px 0;
-  font-size: 0.9rem;
-}
-
-.admin-actions {
-  display: flex;
-  gap: 8px;
-}
+  left: 50
