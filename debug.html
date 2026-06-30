@@ -3,61 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تشخيص الأدمن - ماي سمسم</title>
+  <title>تشخيص ماي سمسم</title>
   <style>
     body { background: #0b0b1a; color: #fff; font-family: sans-serif; padding: 20px; }
     .card { background: rgba(255,255,255,0.08); padding: 20px; border-radius: 16px; margin: 20px 0; }
-    pre { background: #1a1a2e; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    pre { background: #1a1a2e; padding: 15px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
     .success { color: #6bff90; }
     .error { color: #ff6b6b; }
+    button { background: #e94560; color: #fff; border: none; padding: 10px 20px; border-radius: 30px; font-weight: bold; cursor: pointer; margin: 5px; }
   </style>
 </head>
 <body>
-  <h1>🐿️ تشخيص الأدمن</h1>
+  <h1>🐿️ تشخيص ماي سمسم</h1>
   <div class="card">
-    <p>حالة تسجيل الدخول: <span id="loginStatus">يتم الفحص...</span></p>
-    <p>الرابط المستخدم: <span id="apiBase"></span></p>
+    <p>حالة التوكن: <span id="tokenStatus">يتم الفحص...</span></p>
+    <p>رابط الخادم: <strong id="apiBase"></strong></p>
   </div>
+
+  <button onclick="testMe()">1️⃣ اختبار /api/me</button>
+  <button onclick="testPostText()">2️⃣ اختبار نشر نصي</button>
+  <button onclick="testPostImage()">3️⃣ اختبار نشر صورة وهمية</button>
+
   <div class="card">
-    <h3>نتيجة /api/me :</h3>
-    <pre id="apiResult">جاري الاتصال...</pre>
+    <h3>نتيجة الاختبار:</h3>
+    <pre id="output">اضغط على أي زر لبدء الاختبار...</pre>
   </div>
-  <div id="finalMessage"></div>
 
   <script>
-    // ⚠️ غيّر XXXXX إلى الجزء بتاعك من رابط الـ Worker
-    const API_BASE = 'https://social-api.omarawaad69.workers.dev';
+    const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // ⚠️ استبدل XXXXX
     document.getElementById('apiBase').innerText = API_BASE;
 
-    async function runDiagnostic() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        document.getElementById('loginStatus').innerHTML = '<span class="error">❌ غير مسجل الدخول. سجل الدخول أولاً ثم افتح هذه الصفحة.</span>';
-        return;
-      }
-      document.getElementById('loginStatus').innerHTML = '<span class="success">✅ مسجل الدخول (تم العثور على رمز)</span>';
+    function getToken() { return localStorage.getItem('token'); }
+    function showTokenStatus() {
+      const t = getToken();
+      document.getElementById('tokenStatus').innerHTML = t ? '<span class="success">✅ موجود</span>' : '<span class="error">❌ غير موجود (سجل الدخول أولاً)</span>';
+    }
+    showTokenStatus();
 
+    function setOutput(text) {
+      document.getElementById('output').innerText = text;
+    }
+
+    async function testMe() {
+      setOutput('جارٍ اختبار /api/me...');
+      const token = getToken();
+      if (!token) return setOutput('❌ لا يوجد توكن. سجل الدخول أولاً من الموقع الرئيسي.');
       try {
         const res = await fetch(API_BASE + '/api/me', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         const data = await res.json();
-        document.getElementById('apiResult').innerText = JSON.stringify(data, null, 2);
-        
-        if (res.ok && data.is_admin === 1) {
-          document.getElementById('finalMessage').innerHTML = '<div class="success" style="margin-top:20px; font-size:1.2rem;">✅ أنت أدمن! المشكلة في واجهة الموقع (الكاش مثلاً). امسح بيانات المتصفح أو انتظر دقائق.</div>';
-        } else if (res.ok && data.is_admin !== 1) {
-          document.getElementById('finalMessage').innerHTML = '<div class="error">⚠️ أنت لست أدمن. تأكد من تنفيذ أمر UPDATE في D1 بنفس البريد الإلكتروني.</div>';
-        } else {
-          document.getElementById('finalMessage').innerHTML = '<div class="error">⚠️ فشل الطلب (حالة: ' + res.status + '). راجع إعدادات الـ Worker والربط بـ D1.</div>';
-        }
+        setOutput('حالة الطلب: ' + res.status + '\nالرد:\n' + JSON.stringify(data, null, 2));
+        if (!res.ok) setOutput('❌ فشل. تأكد من التوكن وصحة الرابط.');
       } catch (e) {
-        document.getElementById('apiResult').innerText = 'خطأ: ' + e.message;
-        document.getElementById('finalMessage').innerHTML = '<div class="error">❌ لا يمكن الاتصال بالخادم. تأكد من رابط الـ Worker ومن أن الخادم شغال.</div>';
+        setOutput('❌ خطأ في الاتصال: ' + e.message + '\nتأكد من رابط الـ Worker ومن أنه يعمل.');
       }
     }
 
-    runDiagnostic();
+    async function testPostText() {
+      setOutput('جارٍ اختبار نشر منشور نصي...');
+      const token = getToken();
+      if (!token) return setOutput('❌ لا يوجد توكن.');
+      try {
+        const res = await fetch(API_BASE + '/api/posts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ content: 'اختبار نصي من صفحة التشخيص' })
+        });
+        const data = await res.json();
+        setOutput('حالة الطلب: ' + res.status + '\nالرد:\n' + JSON.stringify(data, null, 2));
+        if (data.id) setOutput('✅ تم نشر المنشور النصي بنجاح.\n' + JSON.stringify(data, null, 2));
+      } catch (e) {
+        setOutput('❌ خطأ في الاتصال: ' + e.message);
+      }
+    }
+
+    async function testPostImage() {
+      setOutput('جارٍ اختبار نشر صورة وهمية...');
+      const token = getToken();
+      if (!token) return setOutput('❌ لا يوجد توكن.');
+      // إنشاء ملف وهمي بصيغة PNG
+      const fakeImage = new Blob(['fake image content'], { type: 'image/png' });
+      const formData = new FormData();
+      formData.append('content', 'اختبار صورة وهمية');
+      formData.append('image', fakeImage, 'test.png');
+
+      try {
+        const res = await fetch(API_BASE + '/api/posts', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token
+            // لا نضع Content-Type
+          },
+          body: formData
+        });
+        const data = await res.json();
+        setOutput('حالة الطلب: ' + res.status + '\nالرد:\n' + JSON.stringify(data, null, 2));
+        if (data.id) setOutput('✅ تم نشر الصورة الوهمية بنجاح.\n' + JSON.stringify(data, null, 2));
+        else if (res.status === 500) setOutput('❌ خطأ في الخادم (500). تفقد سجلات الـ Worker أو تحقق من ربط R2 باسم BUCKET.');
+      } catch (e) {
+        setOutput('❌ فشل الاتصال: ' + e.message + '\nتحقق من رابط الـ Worker وسياسة CORS.');
+      }
+    }
   </script>
 </body>
 </html>
