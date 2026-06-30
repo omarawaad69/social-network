@@ -18,6 +18,7 @@
       <nav>
         <a href="index.html" class="active">الرئيسية</a>
         <a href="search.html">بحث</a>
+        <a href="chats.html">💬</a>
         <a href="profile.html">ملفي</a>
         <a href="#" id="adminLink" style="display:none;">⚙️</a>
         <a href="#" onclick="logout()">خروج</a>
@@ -40,6 +41,7 @@
   <script>
     if (!getToken()) location.href = 'login.html';
     document.getElementById('publishBtn').setAttribute('data-text', 'نشر');
+    let currentUserId = null;
 
     function previewImage() {
       const file = document.getElementById('postImage').files[0];
@@ -63,13 +65,26 @@
         }
         feed.innerHTML = posts.map(p => {
           const likedClass = p.liked_by_me ? 'liked' : '';
+          const isMine = (currentUserId && p.user_id === currentUserId);
           return `
-            <div class="card post">
+            <div class="card post" id="post-${p.id}">
               <div class="post-header">
-                <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
-                <span class="post-username">@${p.username}</span>
+                <div class="post-user">
+                  <div class="post-avatar">${p.username.charAt(0).toUpperCase()}</div>
+                  <span class="post-username">@${p.username}</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-small" style="padding:4px 10px;" onclick="location.href='chat.html?user=${p.user_id}'">💬</button>
+                  ${isMine ? `
+                  <div class="post-menu" onclick="toggleMenu('menu-${p.id}')">⋯
+                    <div id="menu-${p.id}" class="post-menu-content">
+                      <button onclick="editPost('${p.id}')">✏️ تعديل</button>
+                      <button onclick="deletePost('${p.id}')">🗑️ حذف</button>
+                    </div>
+                  </div>` : ''}
+                </div>
               </div>
-              <div class="post-content">${p.content || ''}</div>
+              <div class="post-content" id="content-${p.id}">${p.content || ''}</div>
               ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
               <div class="post-actions">
                 <button class="${likedClass}" onclick="likePost('${p.id}', this)">
@@ -86,7 +101,36 @@
       }
     }
 
-    // --- دالة النشر المعدّلة (تظهر الخطأ الحقيقي) ---
+    function toggleMenu(id) {
+      const m = document.getElementById(id);
+      m.style.display = m.style.display === 'block' ? 'none' : 'block';
+      event.stopPropagation();
+    }
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.post-menu-content').forEach(m => m.style.display = 'none');
+    });
+
+    async function editPost(postId) {
+      const newContent = prompt('تعديل المنشور:', document.getElementById(`content-${postId}`).innerText);
+      if (newContent === null || newContent.trim() === '') return;
+      const res = await apiPut(`/api/posts/${postId}/edit`, { content: newContent });
+      if (res.success) {
+        document.getElementById(`content-${postId}`).innerText = newContent;
+      } else {
+        alert(res.error || 'فشل التعديل');
+      }
+    }
+
+    async function deletePost(postId) {
+      if (!confirm('حذف المنشور؟')) return;
+      const res = await apiPost(`/api/posts/${postId}/delete`, {});
+      if (res.success) {
+        document.getElementById(`post-${postId}`).remove();
+      } else {
+        alert(res.error || 'فشل الحذف');
+      }
+    }
+
     async function createPost() {
       const content = document.getElementById('postContent').value.trim();
       const imageFile = document.getElementById('postImage').files[0];
@@ -113,7 +157,7 @@
           alert('فشل النشر: ' + (result.error || 'استجابة غير متوقعة'));
         }
       } catch (e) {
-        alert('خطأ تقني: ' + e.message); // يظهر سبب الخطأ الحقيقي
+        alert('خطأ تقني: ' + e.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = btn.getAttribute('data-text');
@@ -147,18 +191,18 @@
       toggleComments(postId);
     }
 
-    (async function checkAdmin() {
-      if (!getToken()) return;
+    (async function init() {
+      if (!getToken()) return location.href = 'login.html';
       try {
-        const user = await apiGet('/api/me');
-        if (user && user.is_admin) {
+        const me = await apiGet('/api/me');
+        currentUserId = me.id;
+        if (me.is_admin) {
           const link = document.getElementById('adminLink');
           if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
         }
       } catch(e) {}
+      loadFeed();
     })();
-
-    loadFeed();
   </script>
 </body>
 </html>
