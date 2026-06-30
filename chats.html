@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>ماي سمسم - المحادثات</title>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="logo-area">
+        <img src="logo.png" class="logo-img" alt="شعار">
+        <span class="app-name-ar">ماي سمسم</span>
+        <span class="app-name-en">MY SIMSIM</span>
+      </div>
+      <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="search.html">بحث</a>
+        <a href="chats.html" class="active">💬</a>
+        <a href="profile.html">ملفي</a>
+        <a href="#" id="adminLink" style="display:none;">⚙️</a>
+        <a href="#" onclick="logout()">خروج</a>
+      </nav>
+    </div>
+    <div id="chatsList"></div>
+  </div>
+  <script src="js/api.js"></script>
+  <script>
+    if (!getToken()) location.href = 'login.html';
+    (async function checkAdmin() {
+      try {
+        const me = await apiGet('/api/me');
+        if (me.is_admin) {
+          const link = document.getElementById('adminLink');
+          if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
+        }
+      } catch(e) {}
+    })();
+    async function loadChats() {
+      const div = document.getElementById('chatsList');
+      div.innerHTML = '<div style="text-align:center;"><span class="spinner"></span></div>';
+      const chats = await apiGet('/api/chats');
+      if (!chats.length) {
+        div.innerHTML = '<p style="text-align:center; color:#aaa;">لا توجد محادثات بعد</p>';
+        return;
+      }
+      div.innerHTML = chats.map(c => `
+        <div class="card" onclick="location.href='chat.html?id=${c.other_id}'" style="cursor:pointer;">
+          <b>@${c.other_username}</b>
+          <p style="color:#aaa;">${c.last_message || 'ابدأ محادثة'}</p>
+        </div>
+      `).join('');
+    }
+    loadChats();
+  </script>
+</body>
+</html>
