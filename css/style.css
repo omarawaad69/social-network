@@ -1,4 +1,4 @@
-/* style.css - ماي سمسم احترافي (مع دعم الرياكشنات) */
+/* style.css - ماي سمسم احترافي (مع دعم الرياكشنات وتوسيطها) */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Orbitron:wght@500;700&display=swap');
 
 * {
@@ -398,7 +398,7 @@ input:focus, textarea:focus {
   margin-top: 3px;
 }
 
-/* ---------- قائمة الرياكشنات العائمة ---------- */
+/* ---------- قائمة الرياكشنات العائمة (مُحسَّنة) ---------- */
 .reaction-picker {
   position: fixed;
   z-index: 9999;
@@ -409,6 +409,8 @@ input:focus, textarea:focus {
   gap: 8px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.6);
   backdrop-filter: blur(10px);
+  white-space: nowrap;       /* منع التفاف الأزرار */
+  align-items: center;
 }
 
 .reaction-picker button {
