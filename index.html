@@ -37,11 +37,23 @@
     <div id="feed"></div>
   </div>
 
+  <!-- قائمة الرموز التعبيرية العائمة -->
+  <div id="reactionPicker" class="reaction-picker" style="display:none;">
+    <button onclick="selectReaction('like')">👍</button>
+    <button onclick="selectReaction('love')">❤️</button>
+    <button onclick="selectReaction('haha')">😂</button>
+    <button onclick="selectReaction('wow')">🔥</button>
+    <button onclick="selectReaction('sad')">😢</button>
+    <button onclick="selectReaction('angry')">😡</button>
+  </div>
+
   <script src="js/api.js"></script>
   <script>
     if (!getToken()) location.href = 'login.html';
     document.getElementById('publishBtn').setAttribute('data-text', 'نشر');
     let currentUserId = null;
+    let currentPostId = null;
+    let activeReactionBtn = null;
 
     function previewImage() {
       const file = document.getElementById('postImage').files[0];
@@ -64,7 +76,10 @@
           return;
         }
         feed.innerHTML = posts.map(p => {
-          const likedClass = p.liked_by_me ? 'liked' : '';
+          const reactionEmoji = { like: '👍', love: '❤️', haha: '😂', wow: '🔥', sad: '😢', angry: '😡' };
+          const myReaction = p.reaction_by_me;
+          const emoji = myReaction ? reactionEmoji[myReaction] : '🤍';
+          const likedClass = myReaction ? 'liked' : '';
           const isMine = (currentUserId && p.user_id === currentUserId);
           return `
             <div class="card post" id="post-${p.id}">
@@ -87,8 +102,8 @@
               <div class="post-content" id="content-${p.id}">${p.content || ''}</div>
               ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
               <div class="post-actions">
-                <button class="${likedClass}" onclick="likePost('${p.id}', this)">
-                  ${p.liked_by_me ? '❤️' : '🤍'} <span>${p.likes_count || 0}</span>
+                <button class="like-btn ${likedClass}" onclick="event.stopPropagation(); showReactionPicker('${p.id}', this)">
+                  ${emoji} <span>${p.likes_count || 0}</span>
                 </button>
                 <button onclick="toggleComments('${p.id}')">💬 <span>${p.comments_count || 0}</span></button>
               </div>
@@ -164,9 +179,38 @@
       }
     }
 
-    async function likePost(postId, btn) {
-      await apiPost('/api/like', { postId });
-      loadFeed();
+    function showReactionPicker(postId, btnElement) {
+      currentPostId = postId;
+      activeReactionBtn = btnElement;
+      const picker = document.getElementById('reactionPicker');
+      const rect = btnElement.getBoundingClientRect();
+      picker.style.top = (rect.top - 60) + 'px';
+      picker.style.left = (rect.left + window.scrollX - 40) + 'px';
+      picker.style.display = 'flex';
+      setTimeout(() => { picker.style.display = 'none'; }, 3000);
+    }
+
+    async function selectReaction(reaction) {
+      document.getElementById('reactionPicker').style.display = 'none';
+      if (!currentPostId) return;
+
+      const res = await apiPost('/api/like', { postId: currentPostId, reaction });
+
+      if (activeReactionBtn) {
+        const postCard = document.getElementById(`post-${currentPostId}`);
+        if (postCard) {
+          const likeBtn = postCard.querySelector('.like-btn');
+          if (likeBtn) {
+            const emojiMap = { like: '👍', love: '❤️', haha: '😂', wow: '🔥', sad: '😢', angry: '😡' };
+            const span = likeBtn.querySelector('span');
+            likeBtn.innerHTML = emojiMap[reaction] + ' <span>' + (res.likes_count || 0) + '</span>';
+            likeBtn.className = 'like-btn liked';
+          }
+        }
+      }
+
+      currentPostId = null;
+      activeReactionBtn = null;
     }
 
     async function toggleComments(postId) {
@@ -190,6 +234,12 @@
       input.value = '';
       toggleComments(postId);
     }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.like-btn')) {
+        document.getElementById('reactionPicker').style.display = 'none';
+      }
+    });
 
     (async function init() {
       if (!getToken()) return location.href = 'login.html';
