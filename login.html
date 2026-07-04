@@ -16,24 +16,31 @@
       </div>
       <p class="subtitle">شبكتك الاجتماعية الآمنة والخاصة</p>
 
+      <!-- نموذج تسجيل الدخول -->
       <div id="loginForm">
         <h2>تسجيل الدخول</h2>
-        <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" required>
+        <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" autocomplete="email" required>
         <input type="password" id="loginPassword" placeholder="كلمة المرور" required>
         <button class="btn" id="loginBtn" onclick="login()">دخول</button>
         <p style="margin-top:16px; color:#aaa;">ليس لديك حساب؟ <a href="#" onclick="showRegister()" style="color:var(--primary);">أنشئ حساباً</a></p>
       </div>
+
+      <!-- نموذج إنشاء حساب -->
       <div id="registerForm" style="display:none;">
         <h2>إنشاء حساب جديد</h2>
         <input type="text" id="regUsername" placeholder="اسم المستخدم" required>
         <input type="email" id="regEmail" placeholder="البريد الإلكتروني" required>
         <input type="password" id="regPassword" placeholder="كلمة المرور" required>
+        <!-- حقل رمز التفعيل -->
+        <input type="text" id="regInviteCode" placeholder="رمز التفعيل (Invite Code)" required>
         <button class="btn" id="regBtn" onclick="register()">إنشاء حساب</button>
         <p style="margin-top:16px; color:#aaa;">لديك حساب؟ <a href="#" onclick="showLogin()" style="color:var(--primary);">سجل الدخول</a></p>
       </div>
+
       <div id="message" style="margin-top:14px; font-size:0.9rem;"></div>
     </div>
   </div>
+
   <script src="js/api.js"></script>
   <script>
     function showRegister() {
@@ -46,7 +53,7 @@
       document.getElementById('registerForm').style.display = 'none';
       document.getElementById('message').innerHTML = '';
     }
-    function showMsg(text, isError = true) {
+    function setMsg(text, isError = true) {
       const msg = document.getElementById('message');
       msg.innerHTML = text;
       msg.style.color = isError ? '#ff6b6b' : '#6bff90';
@@ -59,10 +66,11 @@
       document.getElementById('loginBtn').setAttribute('data-text', 'دخول');
       document.getElementById('regBtn').setAttribute('data-text', 'إنشاء حساب');
     };
+
     async function login() {
       const email = document.getElementById('loginEmail').value.trim();
       const password = document.getElementById('loginPassword').value;
-      if (!email || !password) return showMsg('يرجى ملء جميع الحقول');
+      if (!email || !password) return setMsg('يرجى ملء جميع الحقول');
       const btn = document.getElementById('loginBtn');
       setLoading(btn, true);
       try {
@@ -71,31 +79,33 @@
           setToken(res.token);
           window.location.href = 'index.html';
         } else {
-          showMsg(res.error || 'بيانات خاطئة');
+          setMsg(res.error || 'بيانات خاطئة');
         }
       } catch (e) {
-        showMsg('خطأ في الاتصال بالخادم');
+        setMsg('خطأ في الاتصال بالخادم');
       } finally {
         setLoading(btn, false);
       }
     }
+
     async function register() {
       const username = document.getElementById('regUsername').value.trim();
       const email = document.getElementById('regEmail').value.trim();
       const password = document.getElementById('regPassword').value;
-      if (!username || !email || !password) return showMsg('جميع الحقول مطلوبة');
+      const inviteCode = document.getElementById('regInviteCode').value.trim();
+      if (!username || !email || !password || !inviteCode) return setMsg('جميع الحقول مطلوبة (بما في ذلك رمز التفعيل)');
       const btn = document.getElementById('regBtn');
       setLoading(btn, true);
       try {
-        const res = await apiPost('/api/register', { username, email, password });
+        const res = await apiPost('/api/register', { username, email, password, inviteCode });
         if (res.message) {
-          showMsg('تم إنشاء الحساب بنجاح! سجل الدخول الآن.', false);
+          setMsg('تم إنشاء الحساب بنجاح! سجل الدخول الآن.', false);
           showLogin();
         } else {
-          showMsg(res.error || 'فشل في الإنشاء');
+          setMsg(res.error || 'فشل في الإنشاء');
         }
       } catch (e) {
-        showMsg('لا يمكن الوصول إلى الخادم');
+        setMsg('لا يمكن الوصول إلى الخادم');
       } finally {
         setLoading(btn, false);
       }
