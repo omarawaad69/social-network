@@ -18,7 +18,7 @@
       <nav>
         <a href="index.html" class="active">الرئيسية</a>
         <a href="search.html">بحث</a>
-        <a href="chats.html">💬</a>
+        <a href="chats.html" id="chatsLink">💬 <span id="unreadBadge" class="badge" style="display:none;">0</span></a>
         <a href="profile.html">ملفي</a>
         <a href="#" id="adminLink" style="display:none;">⚙️</a>
         <a href="#" onclick="logout()">خروج</a>
@@ -45,6 +45,15 @@
     <button onclick="selectReaction('wow')">🔥</button>
     <button onclick="selectReaction('sad')">😢</button>
     <button onclick="selectReaction('angry')">😡</button>
+  </div>
+
+  <!-- نافذة عرض المتفاعلين -->
+  <div id="reactorsModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeReactorsModal()">&times;</span>
+      <h3>التفاعلات</h3>
+      <div id="reactorsList"></div>
+    </div>
   </div>
 
   <script src="js/api.js"></script>
@@ -103,7 +112,10 @@
               ${p.image_url ? `<img src="${p.image_url}" class="post-image">` : ''}
               <div class="post-actions">
                 <button class="like-btn ${likedClass}" onclick="event.stopPropagation(); showReactionPicker('${p.id}', this)">
-                  ${emoji} <span>${p.likes_count || 0}</span>
+                  ${emoji}
+                </button>
+                <button onclick="showReactors('${p.id}')" style="font-size:0.8rem; color:var(--text-secondary);">
+                  <span>${p.likes_count || 0}</span>
                 </button>
                 <button onclick="toggleComments('${p.id}')">💬 <span>${p.comments_count || 0}</span></button>
               </div>
@@ -179,42 +191,30 @@
       }
     }
 
-    // --- دالة إظهار القائمة مع ضمان ظهور جميع الأيقونات داخل الشاشة ---
+    // --- إظهار قائمة الرموز التعبيرية ---
     function showReactionPicker(postId, btnElement) {
       currentPostId = postId;
       activeReactionBtn = btnElement;
       const picker = document.getElementById('reactionPicker');
       const rect = btnElement.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      
-      // إظهار القائمة بشكل مخفي لقياس الأبعاد
       picker.style.display = 'flex';
       picker.style.visibility = 'hidden';
-      
       const pickerWidth = picker.offsetWidth;
       const centerX = rect.left + rect.width / 2;
-      
-      // الموضع المبدئي: توسيط القائمة فوق الزر
       let left = centerX - pickerWidth / 2;
-      
-      // منع تجاوز الحدود (10px هامش أمان)
       if (left < 10) left = 10;
-      if (left + pickerWidth > viewportWidth - 10) left = viewportWidth - pickerWidth - 10;
-      
+      if (left + pickerWidth > window.innerWidth - 10) left = window.innerWidth - pickerWidth - 10;
       picker.style.top = (rect.top - 60) + 'px';
       picker.style.left = left + 'px';
-      picker.style.transform = 'none'; // لا نستخدم translateX لأننا حسبنا left بدقة
+      picker.style.transform = 'none';
       picker.style.visibility = 'visible';
-      
       setTimeout(() => { picker.style.display = 'none'; }, 3000);
     }
 
     async function selectReaction(reaction) {
       document.getElementById('reactionPicker').style.display = 'none';
       if (!currentPostId) return;
-
       const res = await apiPost('/api/like', { postId: currentPostId, reaction });
-
       if (activeReactionBtn) {
         const postCard = document.getElementById(`post-${currentPostId}`);
         if (postCard) {
@@ -227,11 +227,31 @@
           }
         }
       }
-
       currentPostId = null;
       activeReactionBtn = null;
     }
 
+    // --- عرض المتفاعلين ---
+    async function showReactors(postId) {
+      const modal = document.getElementById('reactorsModal');
+      const list = document.getElementById('reactorsList');
+      modal.style.display = 'block';
+      list.innerHTML = '<div style="text-align:center;"><span class="spinner"></span></div>';
+      try {
+        const reactions = await apiGet(`/api/posts/${postId}/reactions`);
+        const emojiMap = { like: '👍', love: '❤️', haha: '😂', wow: '🔥', sad: '😢', angry: '😡' };
+        list.innerHTML = reactions.map(r => `<div class="reactor-item">${emojiMap[r.reaction] || r.reaction} @${r.username}</div>`).join('');
+        if (!reactions.length) list.innerHTML = '<p>لا تفاعلات بعد</p>';
+      } catch (e) {
+        list.innerHTML = '<p style="color:red;">فشل التحميل</p>';
+      }
+    }
+
+    function closeReactorsModal() {
+      document.getElementById('reactorsModal').style.display = 'none';
+    }
+
+    // التعليقات
     async function toggleComments(postId) {
       const div = document.getElementById(`comments-${postId}`);
       if (div.style.display === 'block') { div.style.display = 'none'; return; }
@@ -254,11 +274,28 @@
       toggleComments(postId);
     }
 
+    // إخفاء قائمة الرموز عند النقر خارجها
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.like-btn')) {
         document.getElementById('reactionPicker').style.display = 'none';
       }
     });
+
+    // تحميل عداد غير المقروء
+    async function updateUnreadCount() {
+      try {
+        const res = await apiGet('/api/chats/unread-count');
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+          if (res.count > 0) {
+            badge.innerText = res.count;
+            badge.style.display = 'inline';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      } catch(e) {}
+    }
 
     (async function init() {
       if (!getToken()) return location.href = 'login.html';
@@ -271,6 +308,8 @@
         }
       } catch(e) {}
       loadFeed();
+      updateUnreadCount();
+      setInterval(updateUnreadCount, 30000); // تحديث كل 30 ثانية
     })();
   </script>
 </body>
