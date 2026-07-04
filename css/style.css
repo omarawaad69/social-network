@@ -398,15 +398,15 @@ input:focus, textarea:focus {
   margin-top: 3px;
 }
 
-/* ---------- قائمة الرياكشنات العائمة (مُحسَّنة) ---------- */
+/* ---------- قائمة الرياكشنات العائمة (مُحسَّنة ومضمونة الظهور) ---------- */
 .reaction-picker {
   position: fixed;
   z-index: 9999;
   background: rgba(20,20,30,0.95);
   border-radius: 30px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   display: none;
-  gap: 8px;
+  gap: 4px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.6);
   backdrop-filter: blur(10px);
   white-space: nowrap;
@@ -416,9 +416,10 @@ input:focus, textarea:focus {
 .reaction-picker button {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.4rem;   /* أصغر قليلاً لتوفير المساحة */
   cursor: pointer;
   transition: transform 0.1s;
+  padding: 2px;
 }
 
 .reaction-picker button:hover {
