@@ -60,7 +60,7 @@
       try {
         const posts = await apiGet('/api/posts');
         if (!posts.length) {
-          feed.innerHTML = '<p style="color:#aaa; text-align:center;">لا توجد منشورات. تابع أصدقاء!</p>';
+          feed.innerHTML = '<p style="color:#aaa; text-align:center;">لا توجد منشورات. كن أول من ينشر!</p>';
           return;
         }
         feed.innerHTML = posts.map(p => {
