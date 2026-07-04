@@ -17,6 +17,7 @@
       <nav>
         <a href="index.html">الرئيسية</a>
         <a href="search.html" class="active">بحث</a>
+        <a href="chats.html" id="chatsLink">💬 <span id="unreadBadge" class="badge" style="display:none;">0</span></a>
         <a href="profile.html">ملفي</a>
         <a href="#" id="adminLink" style="display:none;">⚙️</a>
         <a href="#" onclick="logout()">خروج</a>
@@ -32,14 +33,7 @@
   <script>
     if (!getToken()) location.href = 'login.html';
     (async function checkAdmin() {
-      if (!getToken()) return;
-      try {
-        const user = await apiGet('/api/me');
-        if (user && user.is_admin) {
-          const link = document.getElementById('adminLink');
-          if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
-        }
-      } catch(e) {}
+      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display='inline'; } catch(e){}
     })();
     async function searchUsers() {
       const q = document.getElementById('searchInput').value.trim();
@@ -47,23 +41,33 @@
       const results = document.getElementById('results');
       results.innerHTML = '<span class="spinner"></span>';
       const users = await apiGet(`/api/users/search?q=${encodeURIComponent(q)}`);
-      if (!users.length) {
-        results.innerHTML = '<p>لا يوجد مستخدمون بهذا الاسم.</p>';
-        return;
-      }
+      if (!users.length) { results.innerHTML = '<p>لا يوجد مستخدمون بهذا الاسم.</p>'; return; }
       results.innerHTML = users.map(u => `
         <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <b>@${u.username}</b><br><small style="color:#aaa;">${u.email}</small>
+          <div><b>@${u.username}</b><br><small style="color:#aaa;">${u.email}</small></div>
+          <div class="admin-actions">
+            <button class="btn btn-small" onclick="location.href='chat.html?user=${u.id}'">💬 دردشة</button>
+            <button class="btn btn-small" onclick="followUser('${u.id}', this)">متابعة</button>
           </div>
-          <button class="btn btn-small" onclick="followUser('${u.id}', this)">متابعة</button>
-        </div>
-      `).join('');
+        </div>`).join('');
     }
     async function followUser(targetId, btn) {
       const res = await apiPost('/api/follow', { targetUserId: targetId });
       btn.innerText = res.following ? 'تم ✓' : 'متابعة';
     }
+    // تحديث عداد غير المقروء
+    async function updateUnreadCount() {
+      try {
+        const res = await apiGet('/api/chats/unread-count');
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+          if (res.count > 0) { badge.innerText = res.count; badge.style.display = 'inline'; }
+          else { badge.style.display = 'none'; }
+        }
+      } catch(e) {}
+    }
+    updateUnreadCount();
+    setInterval(updateUnreadCount, 30000);
   </script>
 </body>
 </html>
