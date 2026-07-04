@@ -4,61 +4,68 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
-  <title>ماي سمسم - المحادثات</title>
+  <title>ماي سمسم - محادثة</title>
 </head>
 <body>
   <div class="container">
     <div class="topbar">
-      <div class="logo-area">
-        <img src="logo.png" class="logo-img" alt="شعار">
-        <span class="app-name-ar">ماي سمسم</span>
-        <span class="app-name-en">MY SIMSIM</span>
-      </div>
-      <nav>
-        <a href="index.html">الرئيسية</a>
-        <a href="search.html">بحث</a>
-        <a href="chats.html" class="active" id="chatsLink">💬 <span id="unreadBadge" class="badge" style="display:none;">0</span></a>
-        <a href="profile.html">ملفي</a>
-        <a href="#" id="adminLink" style="display:none;">⚙️</a>
-        <a href="#" onclick="logout()">خروج</a>
-      </nav>
+      <a href="chats.html">⬅ رجوع</a>
+      <span id="chatTitle" style="font-weight:700;">محادثة</span>
+      <span></span>
     </div>
-    <div id="chatsList"></div>
+    <div id="messages" style="min-height:60vh; padding:10px 0;"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <input id="msgInput" placeholder="اكتب رسالة..." style="flex:1;">
+      <button class="btn btn-small" onclick="sendMsg()">إرسال</button>
+    </div>
   </div>
   <script src="js/api.js"></script>
   <script>
+    const params = new URLSearchParams(location.search);
+    const otherId = params.get('user') || params.get('id');
+    if (!otherId) location.href = 'chats.html';
     if (!getToken()) location.href = 'login.html';
-    (async function checkAdmin() {
-      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display='inline'; } catch(e){}
-    })();
-    async function loadChats() {
-      const div = document.getElementById('chatsList');
-      div.innerHTML = '<div style="text-align:center;"><span class="spinner"></span></div>';
-      const chats = await apiGet('/api/chats');
-      if (!chats.length) {
-        div.innerHTML = '<p style="text-align:center; color:#aaa;">لا توجد محادثات بعد</p>';
-        return;
-      }
-      div.innerHTML = chats.map(c => `
-        <div class="card" onclick="location.href='chat.html?id=${c.other_id}'" style="cursor:pointer;">
-          <b>@${c.other_username}</b>
-          <p style="color:#aaa;">${c.last_message || 'ابدأ محادثة'}</p>
+
+    let chatId = null;
+    let myId = null;
+
+    async function init() {
+      const me = await apiGet('/api/me');
+      myId = me.id;
+      const other = await apiGet('/api/user/' + otherId);
+      document.getElementById('chatTitle').innerText = '@' + other.username;
+
+      const chatRes = await apiPost('/api/chats', { otherUserId: otherId });
+      chatId = chatRes.chatId;
+      // تعليم المحادثة كمقروءة
+      await apiPost(`/api/chats/${chatId}/read`, {});
+      loadMessages();
+      setInterval(loadMessages, 3000);
+    }
+
+    async function loadMessages() {
+      if (!chatId) return;
+      const msgs = await apiGet(`/api/chats/${chatId}/messages`);
+      const div = document.getElementById('messages');
+      div.innerHTML = msgs.map(m => `
+        <div class="chat-bubble ${m.sender_id === myId ? 'chat-sent' : 'chat-received'}">
+          <div>${m.text}</div>
+          <div class="chat-time">${new Date(m.created_at).toLocaleTimeString('ar-EG')}</div>
         </div>
       `).join('');
+      div.scrollTop = div.scrollHeight;
     }
-    async function updateUnreadCount() {
-      try {
-        const res = await apiGet('/api/chats/unread-count');
-        const badge = document.getElementById('unreadBadge');
-        if (badge) {
-          if (res.count > 0) { badge.innerText = res.count; badge.style.display = 'inline'; }
-          else { badge.style.display = 'none'; }
-        }
-      } catch(e) {}
+
+    async function sendMsg() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+      await apiPost(`/api/chats/${chatId}/messages`, { text });
+      input.value = '';
+      loadMessages();
     }
-    loadChats();
-    updateUnreadCount();
-    setInterval(updateUnreadCount, 30000);
+
+    init();
   </script>
 </body>
 </html>
