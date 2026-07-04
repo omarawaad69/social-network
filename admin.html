@@ -24,136 +24,114 @@
       </nav>
     </div>
 
-    <div id="statusMsg" style="text-align:center; padding:20px;">جاري التحقق...</div>
+    <div id="statusMsg" style="text-align:center; padding:15px;">جاري التحقق...</div>
     <div id="adminContent" style="display:none;">
       <div class="card">
-        <h2>👥 المستخدمون</h2>
+        <h2 style="font-size:1.1rem; margin-bottom:10px;">👥 المستخدمون</h2>
         <div id="usersList"></div>
       </div>
       <div class="card">
-        <h2>📰 المنشورات</h2>
+        <h2 style="font-size:1.1rem; margin-bottom:10px;">📰 المنشورات</h2>
         <div id="postsList"></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:1.1rem; margin-bottom:10px;">🎫 رموز التفعيل</h2>
+        <button class="btn" onclick="generateInvite()" style="max-width:200px;">إنشاء رمز جديد</button>
+        <div id="invitesList" style="margin-top:10px;"></div>
       </div>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // ⚠️ استبدل XXXXX
+    const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // استبدل XXXXX
 
     function getToken() { return localStorage.getItem('token'); }
-    function logout() {
-      localStorage.removeItem('token');
-      window.location.href = 'login.html';
+    function logout() { localStorage.removeItem('token'); window.location.href='login.html'; }
+
+    async function apiAdm(path, method='GET', body=null) {
+      const opts = { method, headers: { 'Authorization': 'Bearer '+getToken() } };
+      if (body) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+      const res = await fetch(API_BASE + path, opts);
+      return res.json();
     }
 
     async function init() {
       const token = getToken();
-      if (!token) {
-        document.getElementById('statusMsg').innerHTML = '❌ سجل الدخول أولاً.';
-        return;
-      }
+      if (!token) { document.getElementById('statusMsg').innerHTML='❌ سجل الدخول أولاً.'; return; }
       try {
-        const res = await fetch(API_BASE + '/api/me', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await fetch(API_BASE+'/api/me', { headers: {'Authorization':'Bearer '+token} });
         const user = await res.json();
         if (!res.ok || !user.is_admin) {
-          document.getElementById('statusMsg').innerHTML = '⛔ غير مصرح.';
+          document.getElementById('statusMsg').innerHTML='⛔ غير مصرح.';
           return;
         }
-        document.getElementById('statusMsg').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        loadUsers();
-        loadPosts();
-      } catch (e) {
-        document.getElementById('statusMsg').innerHTML = '❌ فشل الاتصال.';
+        document.getElementById('statusMsg').style.display='none';
+        document.getElementById('adminContent').style.display='block';
+        loadUsers(); loadPosts(); loadInvites();
+      } catch(e) {
+        document.getElementById('statusMsg').innerHTML='❌ فشل الاتصال.';
       }
-    }
-
-    async function apiAdm(path, method = 'GET', body = null) {
-      const opts = {
-        method,
-        headers: { 'Authorization': 'Bearer ' + getToken() }
-      };
-      if (body) {
-        opts.headers['Content-Type'] = 'application/json';
-        opts.body = JSON.stringify(body);
-      }
-      const res = await fetch(API_BASE + path, opts);
-      return res.json();
     }
 
     async function loadUsers() {
       const users = await apiAdm('/api/admin/users');
       document.getElementById('usersList').innerHTML = users.map(u => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);">
-          <div>
-            <b>@${u.username}</b> (${u.email})
-            ${u.is_admin ? ' ⭐أدمن' : ''}
-          </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border);">
+          <span>@${u.username} (${u.email}) ${u.is_admin?'⭐':''}</span>
           <div class="admin-actions">
             ${!u.is_admin
-              ? `<button class="btn btn-small" style="background:#2ecc71;" onclick="makeAdmin('${u.id}')">ترقية لأدمن</button>`
-              : `<button class="btn btn-small" style="background:#e67e22;" onclick="removeAdmin('${u.id}')">إلغاء الأدمن</button>`
+              ? `<button class="btn btn-small" style="background:#2ecc71;" onclick="makeAdmin('${u.id}')">ترقية</button>`
+              : `<button class="btn btn-small" style="background:#e67e22;" onclick="removeAdmin('${u.id}')">إلغاء</button>`
             }
             ${!u.is_admin ? `<button class="btn btn-small" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
           </div>
-        </div>
-      `).join('');
+        </div>`).join('');
     }
 
     async function loadPosts() {
       const posts = await apiAdm('/api/admin/posts');
       document.getElementById('postsList').innerHTML = posts.map(p => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);">
-          <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border);">
+          <div style="font-size:0.85rem;">
             <b>@${p.username}</b> (${p.email})<br>
-            <span>${p.content?.substring(0,50) || 'بدون نص'} (${p.status})</span>
+            <span>${p.content?.substring(0,40)||'بدون نص'} (${p.status})</span>
           </div>
           <div class="admin-actions">
-            ${p.status === 'active'
+            ${p.status==='active'
               ? `<button class="btn btn-small" style="background:#e67e22;" onclick="suspendPost('${p.id}')">تعليق</button>`
               : `<button class="btn btn-small" style="background:#2ecc71;" onclick="activatePost('${p.id}')">تنشيط</button>`
             }
             <button class="btn btn-small" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
           </div>
-        </div>
-      `).join('');
+        </div>`).join('');
     }
 
-    async function makeAdmin(userId) {
-      if (!confirm('ترقية المستخدم إلى أدمن؟')) return;
-      await apiAdm('/api/admin/make-admin', 'POST', { userId });
-      loadUsers();
+    async function loadInvites() {
+      const codes = await apiAdm('/api/admin/invites');
+      document.getElementById('invitesList').innerHTML = codes.map(c => `
+        <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:0.85rem;">
+          <span><b>${c.code}</b> ${c.used?'(مستخدم)':'(جديد)'}</span>
+          <button class="btn btn-small" onclick="deleteInvite('${c.code}')">حذف</button>
+        </div>`).join('');
     }
 
-    async function removeAdmin(userId) {
-      if (!confirm('إلغاء صلاحية الأدمن؟')) return;
-      await apiAdm('/api/admin/remove-admin', 'POST', { userId });
-      loadUsers();
+    async function generateInvite() {
+      const res = await apiAdm('/api/admin/invites','POST');
+      alert('الرمز الجديد: '+res.code);
+      loadInvites();
     }
 
-    async function deleteUser(userId) {
-      if (!confirm('حذف المستخدم؟')) return;
-      await apiAdm('/api/admin/delete-user', 'POST', { userId });
-      loadUsers();
+    async function deleteInvite(code) {
+      await apiAdm('/api/admin/invites/delete','POST',{code});
+      loadInvites();
     }
 
-    async function deletePost(postId) {
-      if (!confirm('حذف المنشور؟')) return;
-      await apiAdm('/api/admin/delete-post', 'POST', { postId });
-      loadPosts();
-    }
-
-    async function suspendPost(postId) {
-      await apiAdm('/api/admin/suspend-post', 'POST', { postId });
-      loadPosts();
-    }
-
-    async function activatePost(postId) {
-      await apiAdm('/api/admin/activate-post', 'POST', { postId });
-      loadPosts();
-    }
+    async function makeAdmin(userId) { await apiAdm('/api/admin/make-admin','POST',{userId}); loadUsers(); }
+    async function removeAdmin(userId) { await apiAdm('/api/admin/remove-admin','POST',{userId}); loadUsers(); }
+    async function deleteUser(userId) { if(confirm('حذف المستخدم؟')){await apiAdm('/api/admin/delete-user','POST',{userId}); loadUsers();} }
+    async function deletePost(postId) { if(confirm('حذف المنشور؟')){await apiAdm('/api/admin/delete-post','POST',{postId}); loadPosts();} }
+    async function suspendPost(postId) { await apiAdm('/api/admin/suspend-post','POST',{postId}); loadPosts(); }
+    async function activatePost(postId) { await apiAdm('/api/admin/activate-post','POST',{postId}); loadPosts(); }
 
     init();
   </script>
