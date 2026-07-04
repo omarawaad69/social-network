@@ -409,7 +409,7 @@ input:focus, textarea:focus {
   gap: 8px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.6);
   backdrop-filter: blur(10px);
-  white-space: nowrap;       /* منع التفاف الأزرار */
+  white-space: nowrap;
   align-items: center;
 }
 
