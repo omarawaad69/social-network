@@ -39,6 +39,7 @@ async function apiPut(path, body) {
   return res.json();
 }
 
+// رفع ملفات مع FormData (بدون Content-Type)
 async function apiPostFormData(path, formData) {
   const res = await fetch(API_BASE + path, {
     method: 'POST',
@@ -47,5 +48,6 @@ async function apiPostFormData(path, formData) {
     },
     body: formData
   });
+  // محاولة تحليل JSON حتى لو فشل (الخادم يرجع دائمًا JSON)
   return res.json();
 }
