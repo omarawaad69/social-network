@@ -17,7 +17,7 @@
       <nav>
         <a href="index.html">الرئيسية</a>
         <a href="search.html">بحث</a>
-        <a href="chats.html" class="active">💬</a>
+        <a href="chats.html" class="active" id="chatsLink">💬 <span id="unreadBadge" class="badge" style="display:none;">0</span></a>
         <a href="profile.html">ملفي</a>
         <a href="#" id="adminLink" style="display:none;">⚙️</a>
         <a href="#" onclick="logout()">خروج</a>
@@ -29,13 +29,7 @@
   <script>
     if (!getToken()) location.href = 'login.html';
     (async function checkAdmin() {
-      try {
-        const me = await apiGet('/api/me');
-        if (me.is_admin) {
-          const link = document.getElementById('adminLink');
-          if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
-        }
-      } catch(e) {}
+      try { const u = await apiGet('/api/me'); if (u.is_admin) document.getElementById('adminLink').style.display='inline'; } catch(e){}
     })();
     async function loadChats() {
       const div = document.getElementById('chatsList');
@@ -52,7 +46,19 @@
         </div>
       `).join('');
     }
+    async function updateUnreadCount() {
+      try {
+        const res = await apiGet('/api/chats/unread-count');
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+          if (res.count > 0) { badge.innerText = res.count; badge.style.display = 'inline'; }
+          else { badge.style.display = 'none'; }
+        }
+      } catch(e) {}
+    }
     loadChats();
+    updateUnreadCount();
+    setInterval(updateUnreadCount, 30000);
   </script>
 </body>
 </html>
