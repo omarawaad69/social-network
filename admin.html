@@ -109,10 +109,34 @@
     async function loadInvites() {
       const codes = await apiAdm('/api/admin/invites');
       document.getElementById('invitesList').innerHTML = codes.map(c => `
-        <div style="display:flex; justify-content:space-between; padding:4px 0; font-size:0.85rem;">
-          <span><b>${c.code}</b> ${c.used?'(مستخدم)':'(جديد)'}</span>
-          <button class="btn btn-small" onclick="deleteInvite('${c.code}')">حذف</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border);">
+          <span style="font-family: monospace; font-size:0.9rem;"><b>${c.code}</b> ${c.used?'(مستخدم)':'(جديد)'}</span>
+          <div class="admin-actions">
+            <button class="btn btn-small" style="background:#3498db;" onclick="copyCode('${c.code}')">نسخ</button>
+            <button class="btn btn-small" style="background:#c0392b;" onclick="deleteInvite('${c.code}')">حذف</button>
+          </div>
         </div>`).join('');
+    }
+
+    async function copyCode(code) {
+      try {
+        await navigator.clipboard.writeText(code);
+        // إشعار بسيط (يمكن تحسينه)
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = 'تم نسخ الرمز!';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      } catch (e) {
+        // طريقة احتياطية للمتصفحات القديمة
+        const textarea = document.createElement('textarea');
+        textarea.value = code;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+        alert('تم نسخ الرمز: ' + code);
+      }
     }
 
     async function generateInvite() {
@@ -122,14 +146,15 @@
     }
 
     async function deleteInvite(code) {
+      if (!confirm('حذف الرمز؟')) return;
       await apiAdm('/api/admin/invites/delete','POST',{code});
       loadInvites();
     }
 
-    async function makeAdmin(userId) { await apiAdm('/api/admin/make-admin','POST',{userId}); loadUsers(); }
-    async function removeAdmin(userId) { await apiAdm('/api/admin/remove-admin','POST',{userId}); loadUsers(); }
-    async function deleteUser(userId) { if(confirm('حذف المستخدم؟')){await apiAdm('/api/admin/delete-user','POST',{userId}); loadUsers();} }
-    async function deletePost(postId) { if(confirm('حذف المنشور؟')){await apiAdm('/api/admin/delete-post','POST',{postId}); loadPosts();} }
+    async function makeAdmin(userId) { if (!confirm('ترقية المستخدم إلى أدمن؟')) return; await apiAdm('/api/admin/make-admin','POST',{userId}); loadUsers(); }
+    async function removeAdmin(userId) { if (!confirm('إلغاء صلاحية الأدمن؟')) return; await apiAdm('/api/admin/remove-admin','POST',{userId}); loadUsers(); }
+    async function deleteUser(userId) { if(!confirm('حذف المستخدم؟')) return; await apiAdm('/api/admin/delete-user','POST',{userId}); loadUsers(); }
+    async function deletePost(postId) { if(!confirm('حذف المنشور؟')) return; await apiAdm('/api/admin/delete-post','POST',{postId}); loadPosts(); }
     async function suspendPost(postId) { await apiAdm('/api/admin/suspend-post','POST',{postId}); loadPosts(); }
     async function activatePost(postId) { await apiAdm('/api/admin/activate-post','POST',{postId}); loadPosts(); }
 
