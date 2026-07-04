@@ -216,6 +216,8 @@ body::before {
   border-radius: 12px;
   margin: 12px 0;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  object-fit: contain;
+  background: #000;
 }
 
 .post-actions {
