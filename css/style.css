@@ -1,4 +1,4 @@
-/* style.css - ماي سمسم احترافي (مع الشات والتعديل) */
+/* style.css - ماي سمسم احترافي (مع تحسين عرض الصور) */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Orbitron:wght@500;700&display=swap');
 
 * {
@@ -208,10 +208,13 @@ body::before {
   color: #e0e0e0;
 }
 
+/* عرض الصورة بالحجم الطبيعي مع تحسينات */
 .post-image {
+  display: block;
   width: 100%;
+  height: auto;
   border-radius: 12px;
-  margin: 10px 0;
+  margin: 12px 0;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
