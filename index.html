@@ -179,29 +179,31 @@
       }
     }
 
-    // --- دالة إظهار القائمة (مُعدّلة لقياس العرض الحقيقي ثم التوسيط) ---
+    // --- دالة إظهار القائمة مع ضمان ظهور جميع الأيقونات داخل الشاشة ---
     function showReactionPicker(postId, btnElement) {
       currentPostId = postId;
       activeReactionBtn = btnElement;
       const picker = document.getElementById('reactionPicker');
       const rect = btnElement.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
       
       // إظهار القائمة بشكل مخفي لقياس الأبعاد
       picker.style.display = 'flex';
       picker.style.visibility = 'hidden';
       
-      // قياس العرض الآن (لأنها أصبحت مرئية تقنياً)
       const pickerWidth = picker.offsetWidth;
-      
-      // حساب المركز الأفقي للزر
       const centerX = rect.left + rect.width / 2;
       
-      // الموضع النهائي
-      picker.style.top = (rect.top - 60) + 'px';
-      picker.style.left = centerX + 'px';
-      picker.style.transform = 'translateX(-50%)';
+      // الموضع المبدئي: توسيط القائمة فوق الزر
+      let left = centerX - pickerWidth / 2;
       
-      // إظهار القائمة
+      // منع تجاوز الحدود (10px هامش أمان)
+      if (left < 10) left = 10;
+      if (left + pickerWidth > viewportWidth - 10) left = viewportWidth - pickerWidth - 10;
+      
+      picker.style.top = (rect.top - 60) + 'px';
+      picker.style.left = left + 'px';
+      picker.style.transform = 'none'; // لا نستخدم translateX لأننا حسبنا left بدقة
       picker.style.visibility = 'visible';
       
       setTimeout(() => { picker.style.display = 'none'; }, 3000);
