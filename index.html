@@ -179,14 +179,19 @@
       }
     }
 
+    // --- دالة إظهار القائمة (مُعدّلة لتوسيط جميع الأيقونات) ---
     function showReactionPicker(postId, btnElement) {
       currentPostId = postId;
       activeReactionBtn = btnElement;
       const picker = document.getElementById('reactionPicker');
       const rect = btnElement.getBoundingClientRect();
+      
+      // حساب الموضع: أعلى الزر مباشرة وفي منتصفه
       picker.style.top = (rect.top - 60) + 'px';
-      picker.style.left = (rect.left + window.scrollX - 40) + 'px';
+      picker.style.left = (rect.left + rect.width / 2) + 'px';
+      picker.style.transform = 'translateX(-50%)'; // توسيط القائمة
       picker.style.display = 'flex';
+      
       setTimeout(() => { picker.style.display = 'none'; }, 3000);
     }
 
