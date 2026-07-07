@@ -11,13 +11,15 @@
     <div class="topbar">
       <a href="chats.html">⬅ رجوع</a>
       <span id="chatTitle" style="font-weight:700;">محادثة</span>
-      <span></span>
+      <button class="mode-toggle" onclick="toggleMode()" title="تغيير الوضع">🌓</button>
     </div>
     <div id="messages" style="min-height:60vh; padding:10px 0;"></div>
-    <div style="display:flex; gap:8px; margin-top:10px;">
+    <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
+      <button class="btn btn-small" id="recordBtn" onclick="toggleRecording()">🎤</button>
       <input id="msgInput" placeholder="اكتب رسالة..." style="flex:1;">
       <button class="btn btn-small" onclick="sendMsg()">إرسال</button>
     </div>
+    <div id="recordingStatus" style="display:none; color:red; text-align:center; margin-top:4px;">جاري التسجيل...</div>
   </div>
   <script src="js/api.js"></script>
   <script>
@@ -28,6 +30,9 @@
 
     let chatId = null;
     let myId = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
 
     async function init() {
       const me = await apiGet('/api/me');
@@ -37,7 +42,6 @@
 
       const chatRes = await apiPost('/api/chats', { otherUserId: otherId });
       chatId = chatRes.chatId;
-      // تعليم المحادثة كمقروءة
       await apiPost(`/api/chats/${chatId}/read`, {});
       loadMessages();
       setInterval(loadMessages, 3000);
@@ -47,12 +51,24 @@
       if (!chatId) return;
       const msgs = await apiGet(`/api/chats/${chatId}/messages`);
       const div = document.getElementById('messages');
-      div.innerHTML = msgs.map(m => `
-        <div class="chat-bubble ${m.sender_id === myId ? 'chat-sent' : 'chat-received'}">
-          <div>${m.text}</div>
-          <div class="chat-time">${new Date(m.created_at).toLocaleTimeString('ar-EG')}</div>
-        </div>
-      `).join('');
+      div.innerHTML = msgs.map(m => {
+        if (m.audio_url) {
+          return `
+            <div class="chat-bubble ${m.sender_id === myId ? 'chat-sent' : 'chat-received'}">
+              <div class="audio-message">
+                <audio controls src="${m.audio_url}"></audio>
+              </div>
+              <div class="chat-time">${new Date(m.created_at).toLocaleTimeString('ar-EG')}</div>
+            </div>
+          `;
+        }
+        return `
+          <div class="chat-bubble ${m.sender_id === myId ? 'chat-sent' : 'chat-received'}">
+            <div>${m.text}</div>
+            <div class="chat-time">${new Date(m.created_at).toLocaleTimeString('ar-EG')}</div>
+          </div>
+        `;
+      }).join('');
       div.scrollTop = div.scrollHeight;
     }
 
@@ -63,6 +79,59 @@
       await apiPost(`/api/chats/${chatId}/messages`, { text });
       input.value = '';
       loadMessages();
+    }
+
+    async function toggleRecording() {
+      if (!isRecording) {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    }
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const fd = new FormData();
+          fd.append('audio', audioBlob, 'voice.webm');
+          fd.append('text', '');
+          await apiPostFormData(`/api/chats/${chatId}/messages`, fd);
+          loadMessages();
+          document.getElementById('recordingStatus').style.display = 'none';
+          document.getElementById('recordBtn').innerText = '🎤';
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById('recordingStatus').style.display = 'block';
+        document.getElementById('recordBtn').innerText = '⏹️';
+      } catch(e) {
+        alert('لا يمكن الوصول للميكروفون');
+      }
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        isRecording = false;
+      }
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    }
+
+    // تحميل الوضع المحفوظ
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.classList.add('light-mode');
     }
 
     init();
