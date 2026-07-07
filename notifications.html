@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+  <title>ماي سمسم - الإشعارات</title>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="logo-area">
+        <img src="logo.png" class="logo-img" alt="شعار">
+        <span class="app-name-ar">ماي سمسم</span>
+        <span class="app-name-en">MY SIMSIM</span>
+      </div>
+      <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="search.html">بحث</a>
+        <a href="chats.html">💬 <span id="unreadBadge" class="badge" style="display:none;">0</span></a>
+        <a href="notifications.html" class="active">🔔 <span id="notifBadge" class="badge" style="display:none;">0</span></a>
+        <a href="profile.html">ملفي</a>
+        <a href="#" id="adminLink" style="display:none;">⚙️</a>
+        <button class="mode-toggle" onclick="toggleMode()" title="تغيير الوضع">🌓</button>
+        <a href="#" onclick="logout()">خروج</a>
+      </nav>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h2>الإشعارات</h2>
+      <button class="btn btn-small" onclick="markAllSeen()">تعليم الكل كمقروء</button>
+    </div>
+    <div id="notificationsList"></div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    if (!getToken()) location.href = 'login.html';
+
+    async function loadNotifications() {
+      const div = document.getElementById('notificationsList');
+      div.innerHTML = '<div style="text-align:center;"><span class="spinner"></span></div>';
+      const notifs = await apiGet('/api/notifications');
+      if (!notifs.length) {
+        div.innerHTML = '<p style="color:var(--text-secondary); text-align:center;">لا توجد إشعارات</p>';
+        return;
+      }
+      div.innerHTML = notifs.map(n => `
+        <div class="card" style="opacity:${n.seen ? '0.6' : '1'}; cursor:pointer;" onclick="openPost('${n.post_id}'); markSeen('${n.id}')">
+          <p style="color:var(--text);">${n.message}</p>
+          <small style="color:var(--text-secondary);">${new Date(n.created_at).toLocaleString('ar-EG')}</small>
+        </div>
+      `).join('');
+    }
+
+    async function markSeen(id) {
+      await apiPost(`/api/notifications/${id}/seen`, {});
+      loadNotifications();
+    }
+
+    async function markAllSeen() {
+      await apiPost('/api/notifications/seen-all', {});
+      loadNotifications();
+    }
+
+    function openPost(postId) {
+      location.href = 'index.html#post-' + postId;
+    }
+
+    async function updateNotifBadge() {
+      try {
+        const res = await apiGet('/api/notifications/unread-count');
+        const b = document.getElementById('notifBadge');
+        if (b) {
+          if (res.count > 0) { b.innerText = res.count; b.style.display = 'inline'; }
+          else b.style.display = 'none';
+        }
+      } catch(e) {}
+    }
+
+    async function updateUnreadBadge() {
+      try {
+        const res = await apiGet('/api/chats/unread-count');
+        const b = document.getElementById('unreadBadge');
+        if (b) {
+          if (res.count > 0) { b.innerText = res.count; b.style.display = 'inline'; }
+          else b.style.display = 'none';
+        }
+      } catch(e) {}
+    }
+
+    function toggleMode() {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    }
+
+    (async function init() {
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-mode');
+      }
+      try {
+        const me = await apiGet('/api/me');
+        if (me.is_admin) document.getElementById('adminLink').style.display = 'inline';
+      } catch(e) {}
+      loadNotifications();
+      updateNotifBadge();
+      updateUnreadBadge();
+      setInterval(() => { updateNotifBadge(); updateUnreadBadge(); }, 30000);
+    })();
+  </script>
+</body>
+</html>
