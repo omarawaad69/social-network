@@ -27,8 +27,8 @@
       </nav>
     </div>
 
-    <!-- شريط القصص -->
-    <div id="storiesBar" class="stories-bar" style="display:none;">
+    <!-- شريط القصص (يظهر دائماً) -->
+    <div id="storiesBar" class="stories-bar">
       <div class="stories-container" id="storiesContainer">
         <!-- قصة "أضف قصتك" -->
         <div class="story-item add-story" onclick="addStory()">
@@ -132,26 +132,25 @@
 
     // ---------- القصص ----------
     async function loadStories() {
+      const container = document.getElementById('storiesContainer');
+      const bar = document.getElementById('storiesBar');
+      
+      // إظهار الشريط دائماً
+      bar.style.display = 'block';
+      
+      // إعادة بناء الحاوية (مع الاحتفاظ بزر الإضافة)
+      container.innerHTML = `
+        <div class="story-item add-story" onclick="addStory()">
+          <div class="story-avatar" style="background:linear-gradient(45deg, #e94560, #ff6b6b);">
+            <span style="font-size:1.5rem;">+</span>
+          </div>
+          <span class="story-username" style="font-size:0.6rem;">قصتك</span>
+        </div>
+      `;
+      
       try {
         const stories = await apiGet('/api/stories');
-        const bar = document.getElementById('storiesBar');
-        const container = document.getElementById('storiesContainer');
-        
-        if (!stories.length) {
-          bar.style.display = 'none';
-          return;
-        }
-        
-        bar.style.display = 'block';
-        // إعادة بناء الحاوية (مع الاحتفاظ بزر الإضافة)
-        container.innerHTML = `
-          <div class="story-item add-story" onclick="addStory()">
-            <div class="story-avatar" style="background:linear-gradient(45deg, #e94560, #ff6b6b);">
-              <span style="font-size:1.5rem;">+</span>
-            </div>
-            <span class="story-username" style="font-size:0.6rem;">قصتك</span>
-          </div>
-        `;
+        if (!stories.length) return;
         
         // تجميع القصص حسب المستخدم
         const userStories = {};
@@ -177,7 +176,7 @@
           container.appendChild(storyEl);
         }
       } catch(e) {
-        console.error('فشل تحميل القصص');
+        console.error('فشل تحميل القصص:', e);
       }
     }
 
@@ -213,11 +212,12 @@
         if (res.id) {
           closeStoryUpload();
           loadStories();
+          alert('تم نشر القصة بنجاح!');
         } else {
-          alert('فشل نشر القصة');
+          alert('فشل نشر القصة: ' + (res.error || 'خطأ غير معروف'));
         }
       } catch(e) {
-        alert('خطأ في رفع القصة');
+        alert('خطأ في رفع القصة: ' + (e.message || ''));
       }
     }
 
@@ -229,7 +229,6 @@
         document.getElementById('storyViewerTime').innerText = new Date(story.created_at).toLocaleString('ar-EG');
         document.getElementById('storyViewerImage').src = story.image_url;
         document.getElementById('storyViewer').style.display = 'block';
-        // إخفاء بعد 5 ثوانٍ
         setTimeout(closeStoryViewer, 5000);
       }
     }
