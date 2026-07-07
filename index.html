@@ -19,8 +19,10 @@
         <a href="index.html" class="active">الرئيسية</a>
         <a href="search.html">بحث</a>
         <a href="chats.html" id="chatsLink">💬 <span id="unreadBadge" class="badge" style="display:none;">0</span></a>
+        <a href="notifications.html" id="notifLink">🔔 <span id="notifBadge" class="badge" style="display:none;">0</span></a>
         <a href="profile.html">ملفي</a>
         <a href="#" id="adminLink" style="display:none;">⚙️</a>
+        <button class="mode-toggle" onclick="toggleMode()" title="تغيير الوضع">🌓</button>
         <a href="#" onclick="logout()">خروج</a>
       </nav>
     </div>
@@ -64,6 +66,35 @@
     let currentPostId = null;
     let activeReactionBtn = null;
 
+    // ---------- دوال الوضع الليلي والشارات ----------
+    function toggleMode() {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    }
+
+    async function updateUnreadCount() {
+      try {
+        const res = await apiGet('/api/chats/unread-count');
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+          if (res.count > 0) { badge.innerText = res.count; badge.style.display = 'inline'; }
+          else badge.style.display = 'none';
+        }
+      } catch(e) {}
+    }
+
+    async function updateNotifBadge() {
+      try {
+        const res = await apiGet('/api/notifications/unread-count');
+        const b = document.getElementById('notifBadge');
+        if (b) {
+          if (res.count > 0) { b.innerText = res.count; b.style.display = 'inline'; }
+          else b.style.display = 'none';
+        }
+      } catch(e) {}
+    }
+
+    // ---------- باقي الدوال ----------
     function previewImage() {
       const file = document.getElementById('postImage').files[0];
       const preview = document.getElementById('imagePreview');
@@ -81,7 +112,7 @@
       try {
         const posts = await apiGet('/api/posts');
         if (!posts.length) {
-          feed.innerHTML = '<p style="color:#aaa; text-align:center;">لا توجد منشورات. كن أول من ينشر!</p>';
+          feed.innerHTML = '<p style="color:var(--text-secondary); text-align:center;">لا توجد منشورات. كن أول من ينشر!</p>';
           return;
         }
         feed.innerHTML = posts.map(p => {
@@ -191,7 +222,6 @@
       }
     }
 
-    // --- إظهار قائمة الرموز التعبيرية ---
     function showReactionPicker(postId, btnElement) {
       currentPostId = postId;
       activeReactionBtn = btnElement;
@@ -231,7 +261,6 @@
       activeReactionBtn = null;
     }
 
-    // --- عرض المتفاعلين ---
     async function showReactors(postId) {
       const modal = document.getElementById('reactorsModal');
       const list = document.getElementById('reactorsList');
@@ -251,7 +280,6 @@
       document.getElementById('reactorsModal').style.display = 'none';
     }
 
-    // التعليقات
     async function toggleComments(postId) {
       const div = document.getElementById(`comments-${postId}`);
       if (div.style.display === 'block') { div.style.display = 'none'; return; }
@@ -274,31 +302,21 @@
       toggleComments(postId);
     }
 
-    // إخفاء قائمة الرموز عند النقر خارجها
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.like-btn')) {
         document.getElementById('reactionPicker').style.display = 'none';
       }
     });
 
-    // تحميل عداد غير المقروء
-    async function updateUnreadCount() {
-      try {
-        const res = await apiGet('/api/chats/unread-count');
-        const badge = document.getElementById('unreadBadge');
-        if (badge) {
-          if (res.count > 0) {
-            badge.innerText = res.count;
-            badge.style.display = 'inline';
-          } else {
-            badge.style.display = 'none';
-          }
-        }
-      } catch(e) {}
-    }
-
+    // ---------- دالة init الرئيسية ----------
     (async function init() {
       if (!getToken()) return location.href = 'login.html';
+      
+      // تطبيق الوضع المحفوظ
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-mode');
+      }
+      
       try {
         const me = await apiGet('/api/me');
         currentUserId = me.id;
@@ -307,9 +325,12 @@
           if (link) { link.style.display = 'inline'; link.href = 'admin.html'; }
         }
       } catch(e) {}
+      
       loadFeed();
       updateUnreadCount();
-      setInterval(updateUnreadCount, 30000); // تحديث كل 30 ثانية
+      updateNotifBadge();
+      setInterval(updateUnreadCount, 30000);
+      setInterval(updateNotifBadge, 30000);
     })();
   </script>
 </body>
