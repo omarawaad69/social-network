@@ -34,7 +34,15 @@
     let audioChunks = [];
     let isRecording = false;
 
+    function toggleMode() {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    }
+
     async function init() {
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-mode');
+      }
       const me = await apiGet('/api/me');
       myId = me.id;
       const other = await apiGet('/api/user/' + otherId);
@@ -82,56 +90,91 @@
     }
 
     async function toggleRecording() {
-      if (!isRecording) {
-        startRecording();
-      } else {
+      if (isRecording) {
         stopRecording();
+      } else {
+        await startRecording();
       }
     }
 
     async function startRecording() {
+      const statusDiv = document.getElementById('recordingStatus');
+      const btn = document.getElementById('recordBtn');
+      
       try {
+        // طلب الصلاحية أولاً
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        
+        // اختيار نوع MIME مدعوم
+        let mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/ogg';
+            if (!MediaRecorder.isTypeSupported('audio/ogg')) {
+              mimeType = ''; // افتراضي المتصفح
+            }
+          }
+        }
+        
+        const options = mimeType ? { mimeType } : {};
+        mediaRecorder = new MediaRecorder(stream, options);
         audioChunks = [];
 
-        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
         mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const mime = mediaRecorder.mimeType || 'audio/webm';
+          const audioBlob = new Blob(audioChunks, { type: mime });
           const fd = new FormData();
-          fd.append('audio', audioBlob, 'voice.webm');
+          fd.append('audio', audioBlob, 'voice.' + (mime.includes('webm') ? 'webm' : 'mp4'));
           fd.append('text', '');
-          await apiPostFormData(`/api/chats/${chatId}/messages`, fd);
-          loadMessages();
-          document.getElementById('recordingStatus').style.display = 'none';
-          document.getElementById('recordBtn').innerText = '🎤';
+          try {
+            await apiPostFormData(`/api/chats/${chatId}/messages`, fd);
+            loadMessages();
+          } catch(e) {
+            alert('فشل إرسال التسجيل');
+          }
+          statusDiv.style.display = 'none';
+          btn.innerText = '🎤';
+          // إيقاف المسارات
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.onerror = (e) => {
+          console.error('Recorder error:', e);
+          alert('خطأ في التسجيل');
+          statusDiv.style.display = 'none';
+          btn.innerText = '🎤';
+          stream.getTracks().forEach(track => track.stop());
         };
 
         mediaRecorder.start();
         isRecording = true;
-        document.getElementById('recordingStatus').style.display = 'block';
-        document.getElementById('recordBtn').innerText = '⏹️';
+        statusDiv.style.display = 'block';
+        btn.innerText = '⏹️';
+        btn.style.background = '#c0392b';
+        
       } catch(e) {
-        alert('لا يمكن الوصول للميكروفون');
+        console.error('Mic error:', e);
+        if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+          alert('يرجى السماح للمتصفح بالوصول إلى الميكروفون.\nاذهب إلى إعدادات هاتفك > التطبيقات > المتصفح > الصلاحيات > ميكروفون > سماح.');
+        } else if (e.name === 'NotFoundError') {
+          alert('لم يتم العثور على ميكروفون.');
+        } else {
+          alert('لا يمكن الوصول إلى الميكروفون: ' + (e.message || ''));
+        }
       }
     }
 
     function stopRecording() {
       if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(t => t.stop());
         isRecording = false;
+        document.getElementById('recordBtn').style.background = '';
       }
-    }
-
-    function toggleMode() {
-      document.body.classList.toggle('light-mode');
-      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
-    }
-
-    // تحميل الوضع المحفوظ
-    if (localStorage.getItem('theme') === 'light') {
-      document.body.classList.add('light-mode');
     }
 
     init();
