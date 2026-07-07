@@ -742,3 +742,56 @@ input:focus, textarea:focus {
   font-size: 2rem;
   cursor: pointer;
 }
+
+/* أزرار التنقل بين القصص */
+.story-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: none;
+  font-size: 2rem;
+  width: 40px;
+  height: 60px;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.story-nav-prev {
+  left: 10px;
+}
+
+.story-nav-next {
+  right: 10px;
+}
+
+/* شريط التقدم */
+.story-progress-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 10%;
+  width: 80%;
+  height: 3px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+}
+
+.story-progress-fill {
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+
+/* مشغل الصوت */
+.audio-message audio {
+  width: 200px;
+  height: 36px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.1);
+}
