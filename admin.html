@@ -5,6 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <title>لوحة الأدمن - ماي سمسم</title>
+  <style>
+    /* تنسيقات خاصة بلوحة الأدمن */
+    .admin-table {
+      width: 100%;
+      font-size: 0.8rem;
+    }
+    .admin-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-row:last-child {
+      border-bottom: none;
+    }
+    .admin-cell {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .admin-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .btn-xs {
+      padding: 3px 8px;
+      font-size: 0.68rem;
+      border-radius: 12px;
+      width: auto;
+      max-width: none;
+      line-height: 1.2;
+    }
+    .user-email {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -31,7 +71,7 @@
       
       <!-- بطاقة الإحصائيات -->
       <div class="card">
-        <h2 style="font-size:1.1rem; margin-bottom:12px;">📊 إحصائيات</h2>
+        <h2 style="font-size:1rem; margin-bottom:10px;">📊 إحصائيات</h2>
         <div class="stats-grid">
           <div class="stat-box">
             <span class="stat-number" id="totalUsers">-</span>
@@ -58,29 +98,28 @@
 
       <!-- المستخدمون -->
       <div class="card">
-        <h2 style="font-size:1.1rem; margin-bottom:10px;">👥 المستخدمون</h2>
-        <div id="usersList"></div>
+        <h2 style="font-size:1rem; margin-bottom:8px;">👥 المستخدمون</h2>
+        <div id="usersList" class="admin-table"></div>
       </div>
 
       <!-- المنشورات -->
       <div class="card">
-        <h2 style="font-size:1.1rem; margin-bottom:10px;">📰 المنشورات</h2>
-        <div id="postsList"></div>
+        <h2 style="font-size:1rem; margin-bottom:8px;">📰 المنشورات</h2>
+        <div id="postsList" class="admin-table"></div>
       </div>
 
       <!-- رموز التفعيل -->
       <div class="card">
-        <h2 style="font-size:1.1rem; margin-bottom:10px;">🎫 رموز التفعيل</h2>
-        <button class="btn" onclick="generateInvite()" style="max-width:200px;">إنشاء رمز جديد</button>
-        <div id="invitesList" style="margin-top:10px;"></div>
+        <h2 style="font-size:1rem; margin-bottom:8px;">🎫 رموز التفعيل</h2>
+        <button class="btn" onclick="generateInvite()" style="max-width:180px; font-size:0.8rem; padding:8px 16px;">إنشاء رمز جديد</button>
+        <div id="invitesList" class="admin-table" style="margin-top:8px;"></div>
       </div>
 
     </div>
   </div>
 
   <script>
-    // استخدم نفس API_BASE من api.js إن وجد، وإلا عرفه هنا
-    const API_BASE = (typeof window.API_BASE !== 'undefined') ? window.API_BASE : 'https://social-api.omarawaad69.workers.dev';
+    const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // استبدل XXXXX
 
     function getToken() { return localStorage.getItem('token'); }
     function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
@@ -158,16 +197,18 @@
       try {
         const users = await apiAdm('/api/admin/users');
         document.getElementById('usersList').innerHTML = users.map(u => `
-          <div class="user-row">
-            <div>
-              <b>@${u.username}</b> <small>(${u.email})</small> ${u.is_admin ? '⭐' : ''}
+          <div class="admin-row">
+            <div class="admin-cell">
+              <b style="font-size:0.8rem;">@${u.username}</b>
+              <span class="user-email">${u.email}</span>
+              ${u.is_admin ? ' ⭐' : ''}
             </div>
             <div class="admin-actions">
               ${!u.is_admin
-                ? `<button class="btn btn-small" style="background:#2ecc71;" onclick="makeAdmin('${u.id}')">ترقية</button>`
-                : `<button class="btn btn-small" style="background:#e67e22;" onclick="removeAdmin('${u.id}')">إلغاء</button>`
+                ? `<button class="btn btn-xs" style="background:#2ecc71;" onclick="makeAdmin('${u.id}')">ترقية</button>`
+                : `<button class="btn btn-xs" style="background:#e67e22;" onclick="removeAdmin('${u.id}')">إلغاء</button>`
               }
-              ${!u.is_admin ? `<button class="btn btn-small" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
+              ${!u.is_admin ? `<button class="btn btn-xs" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
             </div>
           </div>`).join('');
       } catch(e) { console.error('فشل تحميل المستخدمين'); }
@@ -177,17 +218,17 @@
       try {
         const posts = await apiAdm('/api/admin/posts');
         document.getElementById('postsList').innerHTML = posts.map(p => `
-          <div class="user-row">
-            <div>
-              <b>@${p.username}</b><br>
-              <small>${p.content?.substring(0,50) || 'بدون نص'} (${p.status})</small>
+          <div class="admin-row">
+            <div class="admin-cell" style="font-size:0.8rem;">
+              <b>@${p.username}</b>
+              <span style="font-size:0.7rem; color:var(--text-secondary);">${p.content?.substring(0,40) || 'بدون نص'} (${p.status})</span>
             </div>
             <div class="admin-actions">
               ${p.status === 'active'
-                ? `<button class="btn btn-small" style="background:#e67e22;" onclick="suspendPost('${p.id}')">تعليق</button>`
-                : `<button class="btn btn-small" style="background:#2ecc71;" onclick="activatePost('${p.id}')">تنشيط</button>`
+                ? `<button class="btn btn-xs" style="background:#e67e22;" onclick="suspendPost('${p.id}')">تعليق</button>`
+                : `<button class="btn btn-xs" style="background:#2ecc71;" onclick="activatePost('${p.id}')">تنشيط</button>`
               }
-              <button class="btn btn-small" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
+              <button class="btn btn-xs" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
             </div>
           </div>`).join('');
       } catch(e) { console.error('فشل تحميل المنشورات'); }
@@ -197,11 +238,14 @@
       try {
         const codes = await apiAdm('/api/admin/invites');
         document.getElementById('invitesList').innerHTML = codes.map(c => `
-          <div class="user-row">
-            <span><code>${c.code}</code> ${c.used ? '(مستخدم)' : '(جديد)'}</span>
+          <div class="admin-row">
+            <div class="admin-cell">
+              <code style="font-size:0.75rem;">${c.code}</code>
+              <span style="font-size:0.7rem; color:var(--text-secondary);">${c.used ? '(مستخدم)' : '(جديد)'}</span>
+            </div>
             <div class="admin-actions">
-              <button class="btn btn-small" style="background:#3498db;" onclick="copyCode('${c.code}')">نسخ</button>
-              <button class="btn btn-small" style="background:#c0392b;" onclick="deleteInvite('${c.code}')">حذف</button>
+              <button class="btn btn-xs" style="background:#3498db;" onclick="copyCode('${c.code}')">نسخ</button>
+              <button class="btn btn-xs" style="background:#c0392b;" onclick="deleteInvite('${c.code}')">حذف</button>
             </div>
           </div>`).join('');
       } catch(e) { console.error('فشل تحميل رموز التفعيل'); }
