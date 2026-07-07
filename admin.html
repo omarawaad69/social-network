@@ -78,15 +78,13 @@
     </div>
   </div>
 
-  <script src="js/api.js"></script>
   <script>
-    if (!getToken()) location.href = 'login.html';
-    const API_BASE = 'https://social-api.omarawaad69.workers.dev'; // استبدل XXXXX
+    // استخدم نفس API_BASE من api.js إن وجد، وإلا عرفه هنا
+    const API_BASE = (typeof window.API_BASE !== 'undefined') ? window.API_BASE : 'https://social-api.XXXXX.workers.dev';
 
     function getToken() { return localStorage.getItem('token'); }
     function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
 
-    // دالة تغيير الوضع الليلي/النهاري
     function toggleMode() {
       document.body.classList.toggle('light-mode');
       localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
@@ -95,25 +93,42 @@
     async function apiAdm(path, method='GET', body=null) {
       const opts = { method, headers: { 'Authorization': 'Bearer '+getToken() } };
       if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-      const res = await fetch(API_BASE + path, opts);
-      return res.json();
+      try {
+        const res = await fetch(API_BASE + path, opts);
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'خطأ في الطلب');
+        }
+        return res.json();
+      } catch(e) {
+        console.error('Admin API Error:', e);
+        throw e;
+      }
     }
 
     async function init() {
-      // تطبيق الوضع المحفوظ
       if (localStorage.getItem('theme') === 'light') {
         document.body.classList.add('light-mode');
       }
 
       const token = getToken();
-      if (!token) { document.getElementById('statusMsg').innerHTML = '❌ سجل الدخول أولاً.'; return; }
+      if (!token) {
+        document.getElementById('statusMsg').innerHTML = '❌ سجل الدخول أولاً.';
+        return;
+      }
+
       try {
-        const res = await fetch(API_BASE + '/api/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        const res = await fetch(API_BASE + '/api/me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('فشل التحقق من الحساب');
         const user = await res.json();
-        if (!res.ok || !user.is_admin) {
+        
+        if (!user.is_admin) {
           document.getElementById('statusMsg').innerHTML = '⛔ غير مصرح.';
           return;
         }
+        
         document.getElementById('statusMsg').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
         loadStats();
@@ -121,64 +136,75 @@
         loadPosts();
         loadInvites();
       } catch(e) {
-        document.getElementById('statusMsg').innerHTML = '❌ فشل الاتصال.';
+        document.getElementById('statusMsg').innerHTML = '❌ فشل الاتصال بالخادم. تأكد من الرابط API_BASE.';
+        console.error(e);
       }
     }
 
     async function loadStats() {
-      const stats = await apiAdm('/api/admin/stats');
-      document.getElementById('totalUsers').innerText = stats.totalUsers;
-      document.getElementById('onlineUsers').innerText = stats.onlineUsers;
-      document.getElementById('offlineUsers').innerText = stats.offlineUsers;
-      document.getElementById('totalPosts').innerText = stats.totalPosts;
-      document.getElementById('totalComments').innerText = stats.totalComments;
+      try {
+        const stats = await apiAdm('/api/admin/stats');
+        document.getElementById('totalUsers').innerText = stats.totalUsers || 0;
+        document.getElementById('onlineUsers').innerText = stats.onlineUsers || 0;
+        document.getElementById('offlineUsers').innerText = stats.offlineUsers || 0;
+        document.getElementById('totalPosts').innerText = stats.totalPosts || 0;
+        document.getElementById('totalComments').innerText = stats.totalComments || 0;
+      } catch(e) {
+        console.error('فشل تحميل الإحصائيات');
+      }
     }
 
     async function loadUsers() {
-      const users = await apiAdm('/api/admin/users');
-      document.getElementById('usersList').innerHTML = users.map(u => `
-        <div class="user-row">
-          <div>
-            <b>@${u.username}</b> <small>(${u.email})</small> ${u.is_admin ? '⭐' : ''}
-          </div>
-          <div class="admin-actions">
-            ${!u.is_admin
-              ? `<button class="btn btn-small" style="background:#2ecc71;" onclick="makeAdmin('${u.id}')">ترقية</button>`
-              : `<button class="btn btn-small" style="background:#e67e22;" onclick="removeAdmin('${u.id}')">إلغاء</button>`
-            }
-            ${!u.is_admin ? `<button class="btn btn-small" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
-          </div>
-        </div>`).join('');
+      try {
+        const users = await apiAdm('/api/admin/users');
+        document.getElementById('usersList').innerHTML = users.map(u => `
+          <div class="user-row">
+            <div>
+              <b>@${u.username}</b> <small>(${u.email})</small> ${u.is_admin ? '⭐' : ''}
+            </div>
+            <div class="admin-actions">
+              ${!u.is_admin
+                ? `<button class="btn btn-small" style="background:#2ecc71;" onclick="makeAdmin('${u.id}')">ترقية</button>`
+                : `<button class="btn btn-small" style="background:#e67e22;" onclick="removeAdmin('${u.id}')">إلغاء</button>`
+              }
+              ${!u.is_admin ? `<button class="btn btn-small" style="background:#c0392b;" onclick="deleteUser('${u.id}')">حذف</button>` : ''}
+            </div>
+          </div>`).join('');
+      } catch(e) { console.error('فشل تحميل المستخدمين'); }
     }
 
     async function loadPosts() {
-      const posts = await apiAdm('/api/admin/posts');
-      document.getElementById('postsList').innerHTML = posts.map(p => `
-        <div class="user-row">
-          <div>
-            <b>@${p.username}</b><br>
-            <small>${p.content?.substring(0,50) || 'بدون نص'} (${p.status})</small>
-          </div>
-          <div class="admin-actions">
-            ${p.status === 'active'
-              ? `<button class="btn btn-small" style="background:#e67e22;" onclick="suspendPost('${p.id}')">تعليق</button>`
-              : `<button class="btn btn-small" style="background:#2ecc71;" onclick="activatePost('${p.id}')">تنشيط</button>`
-            }
-            <button class="btn btn-small" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
-          </div>
-        </div>`).join('');
+      try {
+        const posts = await apiAdm('/api/admin/posts');
+        document.getElementById('postsList').innerHTML = posts.map(p => `
+          <div class="user-row">
+            <div>
+              <b>@${p.username}</b><br>
+              <small>${p.content?.substring(0,50) || 'بدون نص'} (${p.status})</small>
+            </div>
+            <div class="admin-actions">
+              ${p.status === 'active'
+                ? `<button class="btn btn-small" style="background:#e67e22;" onclick="suspendPost('${p.id}')">تعليق</button>`
+                : `<button class="btn btn-small" style="background:#2ecc71;" onclick="activatePost('${p.id}')">تنشيط</button>`
+              }
+              <button class="btn btn-small" style="background:#c0392b;" onclick="deletePost('${p.id}')">حذف</button>
+            </div>
+          </div>`).join('');
+      } catch(e) { console.error('فشل تحميل المنشورات'); }
     }
 
     async function loadInvites() {
-      const codes = await apiAdm('/api/admin/invites');
-      document.getElementById('invitesList').innerHTML = codes.map(c => `
-        <div class="user-row">
-          <span><code>${c.code}</code> ${c.used ? '(مستخدم)' : '(جديد)'}</span>
-          <div class="admin-actions">
-            <button class="btn btn-small" style="background:#3498db;" onclick="copyCode('${c.code}')">نسخ</button>
-            <button class="btn btn-small" style="background:#c0392b;" onclick="deleteInvite('${c.code}')">حذف</button>
-          </div>
-        </div>`).join('');
+      try {
+        const codes = await apiAdm('/api/admin/invites');
+        document.getElementById('invitesList').innerHTML = codes.map(c => `
+          <div class="user-row">
+            <span><code>${c.code}</code> ${c.used ? '(مستخدم)' : '(جديد)'}</span>
+            <div class="admin-actions">
+              <button class="btn btn-small" style="background:#3498db;" onclick="copyCode('${c.code}')">نسخ</button>
+              <button class="btn btn-small" style="background:#c0392b;" onclick="deleteInvite('${c.code}')">حذف</button>
+            </div>
+          </div>`).join('');
+      } catch(e) { console.error('فشل تحميل رموز التفعيل'); }
     }
 
     async function copyCode(code) {
@@ -199,9 +225,11 @@
     }
 
     async function generateInvite() {
-      const res = await apiAdm('/api/admin/invites', 'POST');
-      alert('الرمز الجديد: ' + res.code);
-      loadInvites();
+      try {
+        const res = await apiAdm('/api/admin/invites', 'POST');
+        alert('الرمز الجديد: ' + res.code);
+        loadInvites();
+      } catch(e) { alert('فشل إنشاء الرمز'); }
     }
 
     async function deleteInvite(code) {
