@@ -30,7 +30,6 @@
     <!-- شريط القصص (يظهر دائماً) -->
     <div id="storiesBar" class="stories-bar">
       <div class="stories-container" id="storiesContainer">
-        <!-- قصة "أضف قصتك" -->
         <div class="story-item add-story" onclick="addStory()">
           <div class="story-avatar" style="background:linear-gradient(45deg, #e94560, #ff6b6b);">
             <span style="font-size:1.5rem;">+</span>
@@ -102,7 +101,6 @@
     let currentPostId = null;
     let activeReactionBtn = null;
 
-    // ---------- دوال الوضع والشارات ----------
     function toggleMode() {
       document.body.classList.toggle('light-mode');
       localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
@@ -134,11 +132,8 @@
     async function loadStories() {
       const container = document.getElementById('storiesContainer');
       const bar = document.getElementById('storiesBar');
-      
-      // إظهار الشريط دائماً
       bar.style.display = 'block';
       
-      // إعادة بناء الحاوية (مع الاحتفاظ بزر الإضافة)
       container.innerHTML = `
         <div class="story-item add-story" onclick="addStory()">
           <div class="story-avatar" style="background:linear-gradient(45deg, #e94560, #ff6b6b);">
@@ -152,7 +147,6 @@
         const stories = await apiGet('/api/stories');
         if (!stories.length) return;
         
-        // تجميع القصص حسب المستخدم
         const userStories = {};
         stories.forEach(s => {
           if (!userStories[s.user_id]) userStories[s.user_id] = [];
@@ -190,7 +184,6 @@
       document.getElementById('storyPreview').style.display = 'none';
     }
 
-    // معاينة صورة القصة
     document.getElementById('storyImage').addEventListener('change', function() {
       const file = this.files[0];
       if (file) {
@@ -203,10 +196,8 @@
     async function uploadStory() {
       const file = document.getElementById('storyImage').files[0];
       if (!file) return alert('اختر صورة للقصة');
-      
       const fd = new FormData();
       fd.append('image', file);
-      
       try {
         const res = await apiPostFormData('/api/stories', fd);
         if (res.id) {
@@ -223,10 +214,12 @@
 
     async function viewStory(storyId, userId) {
       await apiPost(`/api/stories/${storyId}/view`, {});
-      const story = (await apiGet('/api/stories')).find(s => s.id === storyId);
+      const stories = await apiGet('/api/stories');
+      const story = stories.find(s => s.id === storyId);
       if (story) {
         document.getElementById('storyViewerUsername').innerText = '@' + story.username;
-        document.getElementById('storyViewerTime').innerText = new Date(story.created_at).toLocaleString('ar-EG');
+        document.getElementById('storyViewerTime').innerText = 
+          new Date(story.created_at).toLocaleString('ar-EG') + ' · 👁 ' + (story.views_count || 0);
         document.getElementById('storyViewerImage').src = story.image_url;
         document.getElementById('storyViewer').style.display = 'block';
         setTimeout(closeStoryViewer, 5000);
@@ -450,14 +443,11 @@
       }
     });
 
-    // ---------- دالة init ----------
     (async function init() {
       if (!getToken()) return location.href = 'login.html';
-      
       if (localStorage.getItem('theme') === 'light') {
         document.body.classList.add('light-mode');
       }
-      
       try {
         const me = await apiGet('/api/me');
         currentUserId = me.id;
