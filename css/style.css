@@ -642,3 +642,20 @@ input:focus, textarea:focus {
   padding: 4px 8px;
   border-radius: 20px;
   }
+/* مشغل الصوت */
+.audio-message audio {
+  width: 200px;
+  height: 36px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.1);
+}
+
+.audio-message audio::-webkit-media-controls-panel {
+  background: rgba(255,255,255,0.15);
+}
+
+.audio-message audio::-webkit-media-controls-play-button {
+  background: var(--primary);
+  border-radius: 50%;
+}
+
