@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
   <title>ماي سمسم - محادثة</title>
-  <!-- مكتبة RecordRTC للتسجيل الصوتي -->
-  <script src="https://cdn.jsdelivr.net/npm/recordrtc@5.6.2/RecordRTC.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -17,13 +15,10 @@
     </div>
     <div id="messages" style="min-height:60vh; padding:10px 0;"></div>
     <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
-      <button class="btn btn-small" id="recordBtn" onclick="toggleRecording()">🎤</button>
       <input id="msgInput" placeholder="اكتب رسالة..." style="flex:1;">
       <button class="btn btn-small" onclick="sendMsg()">إرسال</button>
     </div>
-    <div id="recordingStatus" style="display:none; color:red; text-align:center; margin-top:4px;">جاري التسجيل...</div>
   </div>
-  
   <script src="js/api.js"></script>
   <script>
     const params = new URLSearchParams(location.search);
@@ -33,8 +28,6 @@
 
     let chatId = null;
     let myId = null;
-    let recorder = null;
-    let isRecording = false;
 
     function toggleMode() {
       document.body.classList.toggle('light-mode');
@@ -66,7 +59,7 @@
           return `
             <div class="chat-bubble ${m.sender_id === myId ? 'chat-sent' : 'chat-received'}">
               <div class="audio-message">
-                <audio controls preload="auto" src="${m.audio_url}"></audio>
+                <audio controls src="${m.audio_url}"></audio>
               </div>
               <div class="chat-time">${new Date(m.created_at).toLocaleTimeString('ar-EG')}</div>
             </div>
@@ -89,75 +82,6 @@
       await apiPost(`/api/chats/${chatId}/messages`, { text });
       input.value = '';
       loadMessages();
-    }
-
-    async function toggleRecording() {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        await startRecording();
-      }
-    }
-
-    async function startRecording() {
-      const statusDiv = document.getElementById('recordingStatus');
-      const btn = document.getElementById('recordBtn');
-      
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        recorder = new RecordRTC(stream, {
-          type: 'audio',
-          mimeType: 'audio/webm',
-          recorderType: RecordRTC.StereoAudioRecorder,
-          numberOfAudioChannels: 1,
-          desiredSampRate: 16000,
-          timeSlice: 1000
-        });
-
-        recorder.startRecording();
-        isRecording = true;
-        statusDiv.style.display = 'block';
-        btn.innerText = '⏹️';
-        btn.style.background = '#c0392b';
-        
-      } catch(e) {
-        console.error('Mic error:', e);
-        alert('لا يمكن الوصول للميكروفون: ' + (e.message || 'تأكد من الصلاحية'));
-      }
-    }
-
-    async function stopRecording() {
-      if (!recorder || !isRecording) return;
-      
-      const statusDiv = document.getElementById('recordingStatus');
-      const btn = document.getElementById('recordBtn');
-      
-      recorder.stopRecording(async () => {
-        const blob = recorder.getBlob();
-        
-        if (blob && blob.size > 0) {
-          const fd = new FormData();
-          fd.append('audio', blob, 'voice.webm');
-          fd.append('text', '');
-          
-          try {
-            await apiPostFormData(`/api/chats/${chatId}/messages`, fd);
-            loadMessages();
-          } catch(e) {
-            alert('فشل إرسال التسجيل');
-          }
-        }
-        
-        // تنظيف
-        recorder.getInternalRecorder().getState().stream.getTracks().forEach(t => t.stop());
-        recorder.destroy();
-        recorder = null;
-        isRecording = false;
-        statusDiv.style.display = 'none';
-        btn.innerText = '🎤';
-        btn.style.background = '';
-      });
     }
 
     init();
