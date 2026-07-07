@@ -46,7 +46,12 @@
         <span id="storyViewerTime" style="font-size:0.7rem; color:#aaa;"></span>
         <button class="close-story" onclick="closeStoryViewer()">&times;</button>
       </div>
+      <button class="story-nav story-nav-prev" onclick="prevStory()">‹</button>
       <img id="storyViewerImage" style="width:100%; max-height:80vh; object-fit:contain;" />
+      <button class="story-nav story-nav-next" onclick="nextStory()">›</button>
+      <div class="story-progress-bar">
+        <div id="storyProgressFill" class="story-progress-fill" style="width:0%;"></div>
+      </div>
     </div>
 
     <!-- مربع النشر -->
@@ -101,6 +106,12 @@
     let currentPostId = null;
     let activeReactionBtn = null;
 
+    // متغيرات القصص
+    let currentStoriesList = [];
+    let currentStoryIndex = 0;
+    let currentStoryTimer = null;
+
+    // ---------- دوال الوضع والشارات ----------
     function toggleMode() {
       document.body.classList.toggle('light-mode');
       localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
@@ -149,23 +160,26 @@
         
         const userStories = {};
         stories.forEach(s => {
-          if (!userStories[s.user_id]) userStories[s.user_id] = [];
-          userStories[s.user_id].push(s);
+          if (!userStories[s.user_id]) {
+            userStories[s.user_id] = { username: s.username, stories: [] };
+          }
+          userStories[s.user_id].stories.push(s);
         });
         
-        for (const [userId, userStoriesList] of Object.entries(userStories)) {
+        for (const [userId, userData] of Object.entries(userStories)) {
+          const { username, stories: userStoriesList } = userData;
           const latest = userStoriesList[0];
           const hasUnviewed = userStoriesList.some(s => !s.viewed);
           const borderColor = hasUnviewed ? 'linear-gradient(45deg, #e94560, #ff6b6b)' : '#555';
           
           const storyEl = document.createElement('div');
           storyEl.className = 'story-item';
-          storyEl.onclick = () => viewStory(latest.id, userId);
+          storyEl.onclick = () => viewUserStories(userId, username, userStoriesList);
           storyEl.innerHTML = `
             <div class="story-avatar" style="background:${borderColor}; padding:3px;">
               <img src="${latest.image_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
             </div>
-            <span class="story-username" style="font-size:0.6rem;">@${latest.username}</span>
+            <span class="story-username" style="font-size:0.6rem;">@${username}</span>
           `;
           container.appendChild(storyEl);
         }
@@ -212,22 +226,66 @@
       }
     }
 
-    async function viewStory(storyId, userId) {
-      await apiPost(`/api/stories/${storyId}/view`, {});
-      const stories = await apiGet('/api/stories');
-      const story = stories.find(s => s.id === storyId);
-      if (story) {
-        document.getElementById('storyViewerUsername').innerText = '@' + story.username;
-        document.getElementById('storyViewerTime').innerText = 
-          new Date(story.created_at).toLocaleString('ar-EG') + ' · 👁 ' + (story.views_count || 0);
-        document.getElementById('storyViewerImage').src = story.image_url;
-        document.getElementById('storyViewer').style.display = 'block';
-        setTimeout(closeStoryViewer, 5000);
+    // عرض جميع قصص مستخدم
+    async function viewUserStories(userId, username, storiesList) {
+      currentStoriesList = storiesList;
+      currentStoryIndex = 0;
+      
+      await apiPost(`/api/stories/${storiesList[0].id}/view`, {});
+      showCurrentStory(username);
+      document.getElementById('storyViewer').style.display = 'block';
+    }
+
+    function showCurrentStory(username) {
+      if (currentStoryIndex >= currentStoriesList.length) {
+        closeStoryViewer();
+        return;
+      }
+      
+      const story = currentStoriesList[currentStoryIndex];
+      document.getElementById('storyViewerUsername').innerText = '@' + username;
+      document.getElementById('storyViewerTime').innerText = 
+        new Date(story.created_at).toLocaleString('ar-EG') + 
+        ' · 👁 ' + (story.views_count || 0) +
+        ' · ' + (currentStoryIndex + 1) + '/' + currentStoriesList.length;
+      document.getElementById('storyViewerImage').src = story.image_url;
+      
+      // تحديث شريط التقدم
+      const progressFill = document.getElementById('storyProgressFill');
+      if (progressFill) {
+        const progress = ((currentStoryIndex + 1) / currentStoriesList.length) * 100;
+        progressFill.style.width = progress + '%';
+      }
+      
+      if (currentStoryTimer) clearTimeout(currentStoryTimer);
+      currentStoryTimer = setTimeout(() => {
+        nextStory();
+      }, 5000);
+    }
+
+    async function nextStory() {
+      if (currentStoryIndex < currentStoriesList.length - 1) {
+        currentStoryIndex++;
+        await apiPost(`/api/stories/${currentStoriesList[currentStoryIndex].id}/view`, {});
+        showCurrentStory(currentStoriesList[currentStoryIndex].username);
+      } else {
+        closeStoryViewer();
+      }
+    }
+
+    async function prevStory() {
+      if (currentStoryIndex > 0) {
+        currentStoryIndex--;
+        showCurrentStory(currentStoriesList[currentStoryIndex].username);
       }
     }
 
     function closeStoryViewer() {
       document.getElementById('storyViewer').style.display = 'none';
+      if (currentStoryTimer) clearTimeout(currentStoryTimer);
+      currentStoriesList = [];
+      currentStoryIndex = 0;
+      loadStories();
     }
 
     // ---------- المنشورات ----------
